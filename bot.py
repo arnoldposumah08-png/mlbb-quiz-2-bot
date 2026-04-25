@@ -4,7 +4,6 @@ from config import TOKEN
 from generator import generate_question
 from rank import get_rank
 import database
-import random
 
 user_data = {}
 
@@ -41,8 +40,6 @@ def start(update, context):
 
     user_data[chat_id] = {
         "active": True,
-        "questions": random.sample(QUESTIONS, len(QUESTIONS)),
-        "index": 0,
         "current_q": None,
         "answered": False,
         "answered_by": {},
@@ -68,12 +65,14 @@ def build_question_text(user):
         else:
             text += f"{i+1}. ______\n"
 
-    # 🔥 kalau sudah selesai → tampilkan notif di bawah soal
-    if len(user["answered_by"]) == len(answers):
-        text += "\n🎉 Semua jawaban terjawab! Soal berikutnya..."
-    else:
+    # kalau belum selesai
+    if not user["answered"]:
         text += "\nSilahkan /next jika soalnya susah bosque^^"
         text += "\natau gunakan /nyerah untuk spill jawaban^^"
+
+    # kalau sudah selesai
+    else:
+        text += "\n\n🎉 Semua jawaban terjawab! Soal berikutnya..."
 
     return text
 
@@ -83,10 +82,6 @@ def send_question(update, context):
     try:
         chat_id = str(update.effective_chat.id)
         user = user_data[chat_id]
-
-        if user["index"] >= len(user["questions"]):
-            user["questions"] = random.sample(QUESTIONS, len(QUESTIONS))
-            user["index"] = 0
 
         q = generate_question()
 
@@ -169,18 +164,21 @@ def answer(update, context):
             except Exception as e:
                 print("DB ERROR:", e)
 
+            # cek apakah semua sudah terjawab
+            if len(user["answered_by"]) == len(answers):
+                user["answered"] = True
+
             refresh_question(context, chat_id)
+
+            # kalau sudah selesai → lanjut soal baru
+            if user["answered"]:
+                context.bot.send_message(
+                    chat_id=int(chat_id),
+                    text="➡️ Soal baru..."
+                )
+                send_question(update, context)
+
             break
-
-    # 🔥 kalau semua sudah kejawab
-    if len(user["answered_by"]) == len(answers):
-        user["answered"] = True
-
-        # update tampilan (yang ada notif 🎉)
-        refresh_question(context, chat_id)
-
-        # lanjut soal baru tanpa spam
-        send_question(update, context)
 
 # ================= NEXT ==================
 
