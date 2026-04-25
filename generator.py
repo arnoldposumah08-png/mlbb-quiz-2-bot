@@ -1,6 +1,7 @@
 import random
 from heroes import HEROES
-from items import ITEMS, SPELLS
+from items import ITEMS
+from spells import SPELLS
 
 def generate_question():
     q_type = random.choice([
@@ -45,14 +46,14 @@ def generate_question():
         if len(pool) >= 3:
             answers = random.sample(pool, random.randint(3, 5))
             return {
-                "question": f"Sebutkan {len(answers)} hero dari region {region.upper()}",
+                "question": f"Sebutkan {len(answers)} hero dari region {region}",
                 "answers": answers
             }
 
     # ================= ITEM =================
     if q_type == "item_type":
         tipe = random.choice(["attack", "magic", "defense"])
-        pool = [i for i, v in ITEMS.items() if v["type"] == tipe and v.get("tier") == "full"]
+        pool = [i for i, v in ITEMS.items() if v["type"] == tipe]
 
         if len(pool) >= 3:
             answers = random.sample(pool, random.randint(3, 5))
@@ -69,5 +70,5 @@ def generate_question():
             "answers": answers
         }
 
-    # fallback kalau gagal
+    # fallback biar gak error
     return generate_question()
