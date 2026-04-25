@@ -1,1 +1,1 @@
-# mlbb-quiz-2-bot
+# mlbb-quiz-bot
