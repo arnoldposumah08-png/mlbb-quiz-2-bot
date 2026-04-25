@@ -158,7 +158,7 @@ def nyerah(update, context):
 
     context.bot.send_message(chat_id=int(chat_id), text="Semua sudah kebuka!")
 
-# ================= LEADERBOARD ==================
+# ================= LEADERBOARD GLOBAL ==================
 
 def leaderboard(update, context):
     if not group_only(update):
@@ -166,7 +166,33 @@ def leaderboard(update, context):
 
     data = database.get_global_leaderboard()
 
+    if not data:
+        update.message.reply_text("Belum ada data leaderboard.")
+        return
+
     text = "🏆 LEADERBOARD GLOBAL 🏆\n\n"
+
+    for i, (name, score) in enumerate(data, start=1):
+        rank_name = get_rank(score)
+        text += f"{i}. {name} — {rank_name} ({score})\n"
+
+    update.message.reply_text(text, parse_mode="HTML")
+
+# ================= LEADERBOARD GRUP ==================
+
+def topgrup(update, context):
+    if not group_only(update):
+        return
+
+    chat_id = str(update.effective_chat.id)
+
+    data = database.get_group_leaderboard(chat_id)
+
+    if not data:
+        update.message.reply_text("Belum ada leaderboard di grup ini.")
+        return
+
+    text = "🏆 LEADERBOARD GRUP 🏆\n\n"
 
     for i, (name, score) in enumerate(data, start=1):
         rank_name = get_rank(score)
@@ -181,11 +207,13 @@ def stats(update, context):
 
     score = database.get_user_score(user_id) or 0
     rank_name = get_rank(score)
+    global_rank = database.get_global_rank(user_id)
 
     update.message.reply_text(
         f"📊 Stats\n\n"
-        f"MMR: {score}\n"
-        f"RANK: {rank_name}",
+        f"🔥MMR kamu sekarang 👉 {score}\n"
+        f"🏆RANK : {rank_name}\n"
+        f"🌍<b>GLOBAL RANK : #{global_rank if global_rank else '-'}</b>\n",
         parse_mode="HTML"
     )
 
