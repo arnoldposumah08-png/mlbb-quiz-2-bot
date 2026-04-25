@@ -40,9 +40,12 @@ def start(update, context):
         update.message.reply_text("⚠️ Game masih berjalan!")
         return
 
+    # 🔥 SHUFFLE SEKALI DI AWAL
+    shuffled = random.sample(QUESTIONS, len(QUESTIONS))
+
     user_data[chat_id] = {
         "active": True,
-        "questions": random.sample(QUESTIONS, len(QUESTIONS)),
+        "questions": shuffled,
         "index": 0,
         "current_q": None,
         "answered": False,
@@ -53,7 +56,7 @@ def start(update, context):
 
     send_question(update, context)
 
-# ================= RENDER SOAL ==================
+# ================= RENDER ==================
 
 def build_question_text(user):
     q = user["current_q"]
@@ -76,9 +79,9 @@ def build_question_text(user):
 
 def send_question(update, context):
     chat_id = str(update.effective_chat.id)
-
     user = user_data[chat_id]
 
+    # 🔥 JIKA HABIS → RESET + SHUFFLE ULANG
     if user["index"] >= len(user["questions"]):
         user["questions"] = random.sample(QUESTIONS, len(QUESTIONS))
         user["index"] = 0
@@ -96,17 +99,15 @@ def send_question(update, context):
     msg = context.bot.send_message(chat_id=int(chat_id), text=text)
     user["last_q_msg"] = msg.message_id
 
-# ================= UPDATE SOAL (KIRIM BARU + HAPUS LAMA) ==================
+# ================= REFRESH ==================
 
 def refresh_question(context, chat_id):
     user = user_data[chat_id]
 
     text = build_question_text(user)
 
-    # kirim baru
     msg = context.bot.send_message(chat_id=int(chat_id), text=text)
 
-    # hapus lama
     try:
         if user.get("last_q_msg"):
             context.bot.delete_message(chat_id=int(chat_id), message_id=user["last_q_msg"])
@@ -161,9 +162,16 @@ def answer(update, context):
             refresh_question(context, chat_id)
             break
 
+    # 🔥 AUTO LANJUT SOAL BARU
     if len(user["answered_by"]) == len(answers):
         user["answered"] = True
-        context.bot.send_message(chat_id=int(chat_id), text="🎉 Semua jawaban terjawab!")
+
+        context.bot.send_message(
+            chat_id=int(chat_id),
+            text="🎉 Semua jawaban terjawab! Soal berikutnya..."
+        )
+
+        send_question(update, context)
 
 # ================= NEXT ==================
 
