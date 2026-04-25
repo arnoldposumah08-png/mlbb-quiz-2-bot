@@ -36,6 +36,11 @@ def start(update, context):
 
     chat_id = str(update.effective_chat.id)
 
+    # 🔥 CEK GAME MASIH JALAN
+    if chat_id in user_data and user_data[chat_id].get("active"):
+        update.message.reply_text("⚠️ Game masih berjalan!")
+        return
+
     user_data[chat_id] = {
         "active": True,
         "questions": random.sample(QUESTIONS, len(QUESTIONS)),
@@ -51,6 +56,10 @@ def start(update, context):
 
 def send_question(update, context):
     chat_id = str(update.effective_chat.id)
+
+    if chat_id not in user_data:
+        return
+
     user = user_data[chat_id]
 
     if user["index"] >= len(user["questions"]):
@@ -66,7 +75,7 @@ def send_question(update, context):
 
     total = len(q["answers"])
 
-    text = f"🎯 QUIZ MLBB\n\n"
+    text = "🎯 QUIZ MLBB\n\n"
     for i in range(total):
         text += f"{i+1}. ______\n"
 
@@ -76,6 +85,9 @@ def send_question(update, context):
 
 def answer(update, context):
     if not group_only(update):
+        return
+
+    if not update.message or not update.message.text:
         return
 
     chat_id = str(update.effective_chat.id)
@@ -89,18 +101,24 @@ def answer(update, context):
 
     user = user_data[chat_id]
 
-    if not user["active"] or user["answered"]:
+    if not user.get("active") or user.get("answered"):
         return
 
-    q = user["current_q"]
+    q = user.get("current_q")
+    if not q:
+        return
+
     answers = q["answers"]
 
     if text in [a.lower() for a in answers]:
         if text not in user["revealed"]:
             user["revealed"].append(text)
 
-            database.add_global_score(user_id, name, 10)
-            database.add_group_score(chat_id, user_id, name, 10)
+            try:
+                database.add_global_score(user_id, name, 10)
+                database.add_group_score(chat_id, user_id, name, 10)
+            except Exception as e:
+                print("DB ERROR:", e)
 
             score = database.get_user_score(user_id) or 0
             rank_name = get_rank(score)
@@ -111,11 +129,11 @@ def answer(update, context):
                 parse_mode="HTML"
             )
 
-    # kalau semua jawaban sudah ketebak
+    # semua jawaban terjawab
     if len(user["revealed"]) == len(answers):
         user["answered"] = True
         context.bot.send_message(chat_id=int(chat_id), text="🎉 Semua jawaban terjawab!")
-        
+
 # ================= NEXT ==================
 
 def next_q(update, context):
@@ -124,7 +142,8 @@ def next_q(update, context):
 
     chat_id = str(update.effective_chat.id)
 
-    if chat_id not in user_data:
+    # 🔥 CEK GAME BELUM MULAI
+    if chat_id not in user_data or not user_data[chat_id].get("active"):
         update.message.reply_text("⚠️ Game belum dimulai!")
         return
 
@@ -142,10 +161,13 @@ def nyerah(update, context):
         return
 
     user = user_data[chat_id]
-    q = user["current_q"]
+    q = user.get("current_q")
+
+    if not q:
+        return
+
     answers = q["answers"]
 
-    # cari jawaban yang belum kebuka
     for ans in answers:
         if ans.lower() not in user["revealed"]:
             user["revealed"].append(ans.lower())
@@ -211,9 +233,9 @@ def stats(update, context):
 
     update.message.reply_text(
         f"📊 Stats\n\n"
-        f"🔥MMR kamu sekarang 👉 {score}\n"
-        f"🏆RANK : {rank_name}\n"
-        f"🌍<b>GLOBAL RANK : #{global_rank if global_rank else '-'}</b>\n",
+        f"🔥 MMR kamu sekarang 👉 {score}\n"
+        f"🏆 RANK : {rank_name}\n"
+        f"🌍 <b>GLOBAL RANK : #{global_rank if global_rank else '-'}</b>",
         parse_mode="HTML"
     )
 
