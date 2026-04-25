@@ -59,7 +59,11 @@ def build_question_text(user):
     q = user["current_q"]
     answers = q["answers"]
 
-    text = "🎯 QUIZ MLBB\n\n"
+    # 🔥 AMBIL PERTANYAAN
+    question_title = q.get("question", "Tebak Jawaban Berikut")
+
+    text = f"🎯 QUIZ MLBB\n"
+    text += f"❓ {question_title}\n\n"
 
     for i, a in enumerate(answers):
         if i in user["answered_by"]:
@@ -78,6 +82,7 @@ def send_question(update, context):
     chat_id = str(update.effective_chat.id)
     user = user_data[chat_id]
 
+    # reset kalau habis
     if user["index"] >= len(user["questions"]):
         user["questions"] = random.sample(QUESTIONS, len(QUESTIONS))
         user["index"] = 0
@@ -157,6 +162,7 @@ def answer(update, context):
             refresh_question(context, chat_id)
             break
 
+    # auto next kalau selesai
     if len(user["answered_by"]) == len(answers):
         user["answered"] = True
 
