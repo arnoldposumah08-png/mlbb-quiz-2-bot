@@ -68,8 +68,12 @@ def build_question_text(user):
         else:
             text += f"{i+1}. ______\n"
 
-    text += "\nSilahkan /next jika soalnya susah bosque^^"
-    text += "\natau gunakan /nyerah untuk spill jawaban^^"
+    # 🔥 kalau sudah selesai → tampilkan notif di bawah soal
+    if len(user["answered_by"]) == len(answers):
+        text += "\n🎉 Semua jawaban terjawab! Soal berikutnya..."
+    else:
+        text += "\nSilahkan /next jika soalnya susah bosque^^"
+        text += "\natau gunakan /nyerah untuk spill jawaban^^"
 
     return text
 
@@ -80,7 +84,6 @@ def send_question(update, context):
         chat_id = str(update.effective_chat.id)
         user = user_data[chat_id]
 
-        # reset kalau habis semua soal
         if user["index"] >= len(user["questions"]):
             user["questions"] = random.sample(QUESTIONS, len(QUESTIONS))
             user["index"] = 0
@@ -170,15 +173,14 @@ def answer(update, context):
             refresh_question(context, chat_id)
             break
 
-    # auto next kalau semua jawaban sudah
+    # 🔥 kalau semua sudah kejawab
     if len(user["answered_by"]) == len(answers):
         user["answered"] = True
 
-        context.bot.send_message(
-            chat_id=int(chat_id),
-            text="🎉 Semua jawaban terjawab! Soal berikutnya..."
-        )
+        # update tampilan (yang ada notif 🎉)
+        refresh_question(context, chat_id)
 
+        # lanjut soal baru tanpa spam
         send_question(update, context)
 
 # ================= NEXT ==================
