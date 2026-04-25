@@ -3,7 +3,9 @@ from heroes import HEROES
 from items import ITEMS
 from spells import SPELLS
 
+
 def generate_question():
+
     q_type = random.choice([
         "hero_role",
         "hero_lane",
@@ -14,11 +16,11 @@ def generate_question():
 
     # ================= HERO ROLE =================
     if q_type == "hero_role":
-        role = random.choice(["assassin", "fighter", "mage", "tank", "marksman", "support"])
-        pool = [h for h, v in HEROES.items() if v["role"] == role]
+        role = random.choice(["Assassin", "Fighter", "Mage", "Tank", "Marksman", "Support"])
+        pool = [h for h, v in HEROES.items() if role in v["role"]]
 
         if len(pool) >= 3:
-            answers = random.sample(pool, random.randint(3, 5))
+            answers = random.sample(pool, min(len(pool), random.randint(3, 5)))
             return {
                 "question": f"Sebutkan {len(answers)} hero {role.upper()}",
                 "answers": answers
@@ -26,11 +28,11 @@ def generate_question():
 
     # ================= HERO LANE =================
     if q_type == "hero_lane":
-        lane = random.choice(["exp", "jungle", "mid", "gold", "roam"])
-        pool = [h for h, v in HEROES.items() if v["lane"] == lane]
+        lane = random.choice(["EXP", "Jungle", "Mid", "Gold", "Roam"])
+        pool = [h for h, v in HEROES.items() if lane in v["lane"]]
 
         if len(pool) >= 3:
-            answers = random.sample(pool, random.randint(3, 5))
+            answers = random.sample(pool, min(len(pool), random.randint(3, 5)))
             return {
                 "question": f"Sebutkan {len(answers)} hero {lane.upper()} lane",
                 "answers": answers
@@ -44,7 +46,7 @@ def generate_question():
         pool = [h for h, v in HEROES.items() if v["region"] == region]
 
         if len(pool) >= 3:
-            answers = random.sample(pool, random.randint(3, 5))
+            answers = random.sample(pool, min(len(pool), random.randint(3, 5)))
             return {
                 "question": f"Sebutkan {len(answers)} hero dari region {region}",
                 "answers": answers
@@ -56,7 +58,7 @@ def generate_question():
         pool = [i for i, v in ITEMS.items() if v["type"] == tipe]
 
         if len(pool) >= 3:
-            answers = random.sample(pool, random.randint(3, 5))
+            answers = random.sample(pool, min(len(pool), random.randint(3, 5)))
             return {
                 "question": f"Sebutkan {len(answers)} item {tipe.upper()}",
                 "answers": answers
@@ -64,11 +66,12 @@ def generate_question():
 
     # ================= SPELL =================
     if q_type == "spell":
-        answers = random.sample(SPELLS, random.randint(3, 5))
-        return {
-            "question": f"Sebutkan {len(answers)} battle spell MLBB",
-            "answers": answers
-        }
+        if len(SPELLS) >= 3:
+            answers = random.sample(SPELLS, min(len(SPELLS), random.randint(3, 5)))
+            return {
+                "question": f"Sebutkan {len(answers)} battle spell MLBB",
+                "answers": answers
+            }
 
-    # fallback biar gak error
+    # fallback aman
     return generate_question()
