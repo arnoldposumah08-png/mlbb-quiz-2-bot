@@ -63,7 +63,7 @@ def build_question_text(user):
 
     for i, a in enumerate(answers):
         if i in user["answered_by"]:
-            text += f"{i+1}. {a} (+10) [{user['answered_by'][i]}]\n"
+            text += f"{i+1}. {a} (+25) [{user['answered_by'][i]}]\n"
         else:
             text += f"{i+1}. ______\n"
 
