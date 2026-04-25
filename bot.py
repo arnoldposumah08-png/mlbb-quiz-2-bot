@@ -10,29 +10,27 @@ user_data = {}
 # ================= UTIL ==================
 
 def group_only(update):
-    return update.effective_chat.type in ["group", "supergroup"]
+    return update.effective_chat and update.effective_chat.type in ["group", "supergroup"]
 
 # ================= START ==================
 
 def start(update, context):
-    if update.effective_chat.type == "private":
+    chat = update.effective_chat
 
+    if chat.type == "private":
         keyboard = [
             [InlineKeyboardButton("Dev", url="https://t.me/yasanyamagurai")],
             [InlineKeyboardButton("Tambahkan ke GRUP", url="https://t.me/quizmlbb2_bot?startgroup=true")]
         ]
 
         update.message.reply_text(
-            "Halo Player, Selamat datang di QUIZ MLBB 2 🎯\n"
-            "Tambahkan bot ini ke grup untuk mulai permainan.",
+            "🎯 QUIZ MLBB 2\n\n"
+            "Tambahkan bot ini ke grup untuk mulai bermain!",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
 
-    if not group_only(update):
-        return
-
-    chat_id = str(update.effective_chat.id)
+    chat_id = str(chat.id)
 
     if chat_id in user_data and user_data[chat_id].get("active"):
         update.message.reply_text("⚠️ Game masih berjalan!")
@@ -43,21 +41,19 @@ def start(update, context):
         "current_q": None,
         "answered": False,
         "answered_by": {},
-        "hint_used": [],
+        "hint_used": set(),
         "last_q_msg": None
     }
 
     send_question(update, context)
 
-# ================= RENDER ==================
+# ================= QUESTION ==================
 
 def build_question_text(user):
     q = user["current_q"]
     answers = q["answers"]
 
-    question_title = q.get("question", "Tebak Jawaban Berikut")
-
-    text = f"❓ {question_title}\n\n"
+    text = f"❓ {q['question']}\n\n"
 
     for i, a in enumerate(answers):
         if i in user["answered_by"]:
@@ -65,79 +61,70 @@ def build_question_text(user):
         else:
             text += f"{i+1}. ______\n"
 
-    # kalau belum selesai
     if not user["answered"]:
-        text += "\nSilahkan /next jika soalnya susah bosque^^"
-        text += "\natau gunakan /nyerah untuk spill jawaban^^"
-
-    # kalau sudah selesai
+        text += "\n💡 /next untuk skip\n💡 /nyerah untuk bantuan"
     else:
-        text += "\n\n🎉 Semua jawaban terjawab! Soal berikutnya..."
+        text += "\n\n🎉 Semua terjawab!"
 
     return text
 
-# ================= GAME ==================
+# ================= SEND QUESTION ==================
 
 def send_question(update, context):
-    try:
-        chat_id = str(update.effective_chat.id)
-        user = user_data[chat_id]
+    chat_id = str(update.effective_chat.id)
 
-        q = generate_question()
+    if chat_id not in user_data:
+        return
 
-        user["current_q"] = q
-        user["answered"] = False
-        user["answered_by"] = {}
-        user["hint_used"] = []
+    user = user_data[chat_id]
 
-        text = build_question_text(user)
+    q = generate_question()
+    if not q:
+        return send_question(update, context)
 
-        msg = context.bot.send_message(chat_id=int(chat_id), text=text)
-        user["last_q_msg"] = msg.message_id
+    user["current_q"] = q
+    user["answered"] = False
+    user["answered_by"] = {}
+    user["hint_used"] = set()
 
-    except Exception as e:
-        print("ERROR SEND QUESTION:", e)
+    text = build_question_text(user)
+
+    msg = context.bot.send_message(chat_id=int(chat_id), text=text)
+    user["last_q_msg"] = msg.message_id
 
 # ================= REFRESH ==================
 
 def refresh_question(context, chat_id):
     try:
-        user = user_data[chat_id]
+        user = user_data.get(chat_id)
+        if not user:
+            return
+
         text = build_question_text(user)
 
         msg = context.bot.send_message(chat_id=int(chat_id), text=text)
 
-        if user.get("last_q_msg"):
+        old = user.get("last_q_msg")
+        if old:
             try:
-                context.bot.delete_message(
-                    chat_id=int(chat_id),
-                    message_id=user["last_q_msg"]
-                )
+                context.bot.delete_message(chat_id=int(chat_id), message_id=old)
             except:
                 pass
 
         user["last_q_msg"] = msg.message_id
 
     except Exception as e:
-        print("ERROR REFRESH:", e)
+        print("REFRESH ERROR:", e)
 
-# ================= JAWAB ==================
+# ================= ANSWER ==================
 
 def answer(update, context):
     if not group_only(update):
         return
 
-    if not update.message or not update.message.text:
-        return
-
     chat_id = str(update.effective_chat.id)
     user_id = str(update.effective_user.id)
-
-    first = update.effective_user.first_name or ""
-    last = update.effective_user.last_name or ""
-    name = f"{first} {last}".strip()
-
-    user_answer = update.message.text.lower().strip()
+    name = update.effective_user.first_name or "User"
 
     if chat_id not in user_data:
         return
@@ -147,11 +134,11 @@ def answer(update, context):
     if not user.get("active") or user.get("answered"):
         return
 
-    q = user.get("current_q")
-    answers = q["answers"]
+    msg = update.message.text.strip().lower()
+    q = user["current_q"]
 
-    for idx, ans in enumerate(answers):
-        if user_answer == ans.lower():
+    for idx, ans in enumerate(q["answers"]):
+        if msg == ans.lower():
 
             if idx in user["answered_by"]:
                 return
@@ -161,21 +148,16 @@ def answer(update, context):
             try:
                 database.add_global_score(user_id, name, 25)
                 database.add_group_score(chat_id, user_id, name, 25)
-            except Exception as e:
-                print("DB ERROR:", e)
+            except:
+                pass
 
-            # cek apakah semua sudah terjawab
-            if len(user["answered_by"]) == len(answers):
+            if len(user["answered_by"]) == len(q["answers"]):
                 user["answered"] = True
 
             refresh_question(context, chat_id)
 
-            # kalau sudah selesai → lanjut soal baru
             if user["answered"]:
-                context.bot.send_message(
-                    chat_id=int(chat_id),
-                    text="➡️ Soal baru..."
-                )
+                context.bot.send_message(chat_id=int(chat_id), text="➡️ Soal baru...")
                 send_question(update, context)
 
             break
@@ -183,12 +165,9 @@ def answer(update, context):
 # ================= NEXT ==================
 
 def next_q(update, context):
-    if not group_only(update):
-        return
-
     chat_id = str(update.effective_chat.id)
 
-    if chat_id not in user_data or not user_data[chat_id].get("active"):
+    if chat_id not in user_data:
         update.message.reply_text("⚠️ Game belum dimulai!")
         return
 
@@ -197,9 +176,6 @@ def next_q(update, context):
 # ================= NYERAH ==================
 
 def nyerah(update, context):
-    if not group_only(update):
-        return
-
     chat_id = str(update.effective_chat.id)
     user_id = str(update.effective_user.id)
 
@@ -209,61 +185,51 @@ def nyerah(update, context):
     user = user_data[chat_id]
 
     if user_id in user["hint_used"]:
-        update.message.reply_text("❌ Kamu sudah pakai bocoran di soal ini!")
+        update.message.reply_text("❌ Sudah pakai bantuan!")
         return
 
-    q = user.get("current_q")
-    answers = q["answers"]
+    q = user["current_q"]
 
-    for idx, ans in enumerate(answers):
+    for idx, ans in enumerate(q["answers"]):
         if idx not in user["answered_by"]:
             user["answered_by"][idx] = "🤖 bot"
-            user["hint_used"].append(user_id)
+            user["hint_used"].add(user_id)
             break
 
     refresh_question(context, chat_id)
 
-# ================= LEADERBOARD GLOBAL ==================
+# ================= LEADERBOARD ==================
 
 def leaderboard(update, context):
-    if not group_only(update):
-        return
-
     data = database.get_global_leaderboard()
 
     if not data:
-        update.message.reply_text("Belum ada data leaderboard.")
+        update.message.reply_text("Belum ada data.")
         return
 
-    text = "🏆 LEADERBOARD GLOBAL 🏆\n\n"
+    text = "🏆 GLOBAL LEADERBOARD\n\n"
 
-    for i, (name, score) in enumerate(data, start=1):
-        rank_name = get_rank(score)
-        text += f"{i}. {name} — {rank_name} ({score})\n"
+    for i, (name, score) in enumerate(data, 1):
+        text += f"{i}. {name} — {get_rank(score)} ({score})\n"
 
-    update.message.reply_text(text, parse_mode="HTML")
+    update.message.reply_text(text)
 
-# ================= LEADERBOARD GRUP ==================
+# ================= GROUP TOP ==================
 
 def topgrup(update, context):
-    if not group_only(update):
-        return
-
     chat_id = str(update.effective_chat.id)
-
     data = database.get_group_leaderboard(chat_id)
 
     if not data:
-        update.message.reply_text("Belum ada leaderboard di grup ini.")
+        update.message.reply_text("Belum ada data grup.")
         return
 
-    text = "🏆 LEADERBOARD GRUP 🏆\n\n"
+    text = "🏆 LEADERBOARD GRUP\n\n"
 
-    for i, (name, score) in enumerate(data, start=1):
-        rank_name = get_rank(score)
-        text += f"{i}. {name} — {rank_name} ({score})\n"
+    for i, (name, score) in enumerate(data, 1):
+        text += f"{i}. {name} — {get_rank(score)} ({score})\n"
 
-    update.message.reply_text(text, parse_mode="HTML")
+    update.message.reply_text(text)
 
 # ================= STATS ==================
 
@@ -271,18 +237,14 @@ def stats(update, context):
     user_id = str(update.effective_user.id)
 
     score = database.get_user_score(user_id) or 0
-    rank_name = get_rank(score)
-    global_rank = database.get_global_rank(user_id)
 
     update.message.reply_text(
-        f"📊 Stats\n\n"
-        f"🔥 MMR kamu sekarang 👉 {score}\n"
-        f"🏆 RANK : {rank_name}\n"
-        f"🌍 GLOBAL RANK : #{global_rank if global_rank else '-'}",
-        parse_mode="HTML"
+        f"📊 STATS\n\n"
+        f"🔥 MMR: {score}\n"
+        f"🏆 RANK: {get_rank(score)}"
     )
 
-# ================= RUN ==================
+# ================= MAIN ==================
 
 def main():
     database.init_db()
@@ -298,7 +260,7 @@ def main():
     dp.add_handler(CommandHandler("stats", stats))
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, answer))
 
-    print("BOT MLBB 2 RUNNING...")
+    print("BOT MLBB RUNNING...")
 
     updater.start_polling()
     updater.idle()
