@@ -36,7 +36,6 @@ def start(update, context):
 
     chat_id = str(update.effective_chat.id)
 
-    # 🔥 CEK GAME MASIH JALAN
     if chat_id in user_data and user_data[chat_id].get("active"):
         update.message.reply_text("⚠️ Game masih berjalan!")
         return
@@ -48,7 +47,9 @@ def start(update, context):
         "current_q": None,
         "answered": False,
         "revealed": [],
-        "hint_used": []  # 🔥 track nyerah
+        "answered_by": {},
+        "hint_used": [],
+        "last_q_msg": None
     }
 
     send_question(update, context)
@@ -73,7 +74,8 @@ def send_question(update, context):
     user["current_q"] = q
     user["answered"] = False
     user["revealed"] = []
-    user["hint_used"] = []  # 🔥 reset tiap soal
+    user["answered_by"] = {}
+    user["hint_used"] = []
 
     total = len(q["answers"])
 
@@ -81,7 +83,8 @@ def send_question(update, context):
     for i in range(total):
         text += f"{i+1}. ______\n"
 
-    context.bot.send_message(chat_id=int(chat_id), text=text)
+    msg = context.bot.send_message(chat_id=int(chat_id), text=text)
+    user["last_q_msg"] = msg.message_id
 
 # ================= JAWAB ==================
 
@@ -115,9 +118,13 @@ def answer(update, context):
 
     answers = q["answers"]
 
-    if user_answer in [a.lower() for a in answers]:
-        if user_answer not in user["revealed"]:
-            user["revealed"].append(user_answer)
+    for idx, ans in enumerate(answers):
+        if user_answer == ans.lower():
+
+            if idx in user["answered_by"]:
+                return
+
+            user["answered_by"][idx] = name
 
             try:
                 database.add_global_score(user_id, name, 10)
@@ -125,15 +132,27 @@ def answer(update, context):
             except Exception as e:
                 print("DB ERROR:", e)
 
-            score = database.get_user_score(user_id) or 0
-            rank_name = get_rank(score)
+            # 🔥 UPDATE SOAL
+            new_text = "🎯 QUIZ MLBB\n\n"
 
-            context.bot.send_message(
-                chat_id=int(chat_id),
-                text=f"✅ {name} menjawab: {user_answer.title()}\n🏆 {rank_name} ({score})"
-            )
+            for i, a in enumerate(answers):
+                if i in user["answered_by"]:
+                    new_text += f"{i+1}. {a} (+10) [{user['answered_by'][i]}]\n"
+                else:
+                    new_text += f"{i+1}. ______\n"
 
-    if len(user["revealed"]) == len(answers):
+            try:
+                context.bot.edit_message_text(
+                    chat_id=int(chat_id),
+                    message_id=user["last_q_msg"],
+                    text=new_text
+                )
+            except Exception as e:
+                print("EDIT ERROR:", e)
+
+            break
+
+    if len(user["answered_by"]) == len(answers):
         user["answered"] = True
         context.bot.send_message(chat_id=int(chat_id), text="🎉 Semua jawaban terjawab!")
 
@@ -169,8 +188,7 @@ def nyerah(update, context):
 
     user = user_data[chat_id]
 
-    # 🔥 CEK SUDAH PERNAH NYERAH
-    if user_id in user.get("hint_used", []):
+    if user_id in user["hint_used"]:
         update.message.reply_text("❌ Kamu sudah pakai bocoran di soal ini!")
         return
 
@@ -180,27 +198,33 @@ def nyerah(update, context):
 
     answers = q["answers"]
 
-    for ans in answers:
-        if ans.lower() not in user["revealed"]:
-            user["revealed"].append(ans.lower())
+    for idx, ans in enumerate(answers):
+        if idx not in user["answered_by"]:
+            user["answered_by"][idx] = "🤖 bot"
             user["hint_used"].append(user_id)
 
-            # 🔥 FORMAT KEREN
-            text = f"{name} menyerah pada pertanyaan:\n\n"
-            text += f"{q['question']}\n\n"
+            break
 
-            for i, a in enumerate(answers, start=1):
-                if a.lower() in user["revealed"]:
-                    text += f"{i}. {a}\n"
-                else:
-                    text += f"{i}. ______\n"
+    # 🔥 UPDATE MESSAGE
+    new_text = f"{name} menyerah pada pertanyaan:\n\n"
+    new_text += f"{q.get('question', 'Pertanyaan')}\n\n"
 
-            text += "\nKetik /next untuk pertanyaan lain"
+    for i, a in enumerate(answers):
+        if i in user["answered_by"]:
+            new_text += f"{i+1}. {a} [{user['answered_by'][i]}]\n"
+        else:
+            new_text += f"{i+1}. ______\n"
 
-            context.bot.send_message(chat_id=int(chat_id), text=text)
-            return
+    new_text += "\nKetik /next untuk pertanyaan lain"
 
-    context.bot.send_message(chat_id=int(chat_id), text="Semua sudah kebuka!")
+    try:
+        context.bot.edit_message_text(
+            chat_id=int(chat_id),
+            message_id=user["last_q_msg"],
+            text=new_text
+        )
+    except Exception as e:
+        print("EDIT ERROR:", e)
 
 # ================= LEADERBOARD GLOBAL ==================
 
