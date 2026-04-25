@@ -24,8 +24,8 @@ def start(update, context):
         ]
 
         update.message.reply_text(
-            "Halo Player, Selamat datang di QUIZ MLBB 2 \n"
-            "Tambahkan Bot ini di GRUP TELEGRAM untuk Mulai Permainan.",
+            "Halo Player, Selamat datang di QUIZ MLBB 2 🎯\n"
+            "Tambahkan bot ini ke grup untuk mulai permainan.",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
@@ -58,10 +58,9 @@ def build_question_text(user):
     q = user["current_q"]
     answers = q["answers"]
 
-    # 🔥 AMBIL PERTANYAAN
     question_title = q.get("question", "Tebak Jawaban Berikut")
 
-    text += f"❓ {question_title}\n\n"
+    text = f"❓ {question_title}\n\n"
 
     for i, a in enumerate(answers):
         if i in user["answered_by"]:
@@ -69,50 +68,61 @@ def build_question_text(user):
         else:
             text += f"{i+1}. ______\n"
 
-    text += "\nSilahkan /next Jika soalnya susah bosque^^"
-    text += "\natau bisa gunakan /nyerah untuk spill Jawaban^^"
+    text += "\nSilahkan /next jika soalnya susah bosque^^"
+    text += "\natau gunakan /nyerah untuk spill jawaban^^"
 
     return text
 
 # ================= GAME ==================
 
 def send_question(update, context):
-    chat_id = str(update.effective_chat.id)
-    user = user_data[chat_id]
+    try:
+        chat_id = str(update.effective_chat.id)
+        user = user_data[chat_id]
 
-    # reset kalau habis
-    if user["index"] >= len(user["questions"]):
-        user["questions"] = random.sample(QUESTIONS, len(QUESTIONS))
-        user["index"] = 0
+        # reset kalau habis semua soal
+        if user["index"] >= len(user["questions"]):
+            user["questions"] = random.sample(QUESTIONS, len(QUESTIONS))
+            user["index"] = 0
 
-    q = user["questions"][user["index"]]
-    user["index"] += 1
+        q = user["questions"][user["index"]]
+        user["index"] += 1
 
-    user["current_q"] = q
-    user["answered"] = False
-    user["answered_by"] = {}
-    user["hint_used"] = []
+        user["current_q"] = q
+        user["answered"] = False
+        user["answered_by"] = {}
+        user["hint_used"] = []
 
-    text = build_question_text(user)
+        text = build_question_text(user)
 
-    msg = context.bot.send_message(chat_id=int(chat_id), text=text)
-    user["last_q_msg"] = msg.message_id
+        msg = context.bot.send_message(chat_id=int(chat_id), text=text)
+        user["last_q_msg"] = msg.message_id
+
+    except Exception as e:
+        print("ERROR SEND QUESTION:", e)
 
 # ================= REFRESH ==================
 
 def refresh_question(context, chat_id):
-    user = user_data[chat_id]
-    text = build_question_text(user)
-
-    msg = context.bot.send_message(chat_id=int(chat_id), text=text)
-
     try:
-        if user.get("last_q_msg"):
-            context.bot.delete_message(chat_id=int(chat_id), message_id=user["last_q_msg"])
-    except:
-        pass
+        user = user_data[chat_id]
+        text = build_question_text(user)
 
-    user["last_q_msg"] = msg.message_id
+        msg = context.bot.send_message(chat_id=int(chat_id), text=text)
+
+        if user.get("last_q_msg"):
+            try:
+                context.bot.delete_message(
+                    chat_id=int(chat_id),
+                    message_id=user["last_q_msg"]
+                )
+            except:
+                pass
+
+        user["last_q_msg"] = msg.message_id
+
+    except Exception as e:
+        print("ERROR REFRESH:", e)
 
 # ================= JAWAB ==================
 
@@ -160,7 +170,7 @@ def answer(update, context):
             refresh_question(context, chat_id)
             break
 
-    # auto next kalau selesai
+    # auto next kalau semua jawaban sudah
     if len(user["answered_by"]) == len(answers):
         user["answered"] = True
 
