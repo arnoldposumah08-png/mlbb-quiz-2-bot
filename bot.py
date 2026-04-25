@@ -229,6 +229,7 @@ def main():
     dp.add_handler(CommandHandler("next", next_q))
     dp.add_handler(CommandHandler("nyerah", nyerah))
     dp.add_handler(CommandHandler("leaderboard", leaderboard))
+    dp.add_handler(CommandHandler("topgrup", topgrup))
     dp.add_handler(CommandHandler("stats", stats))
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, answer))
 
