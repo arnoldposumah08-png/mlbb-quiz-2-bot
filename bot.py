@@ -47,7 +47,8 @@ def start(update, context):
         "index": 0,
         "current_q": None,
         "answered": False,
-        "revealed": []
+        "revealed": [],
+        "hint_used": []  # 🔥 track nyerah
     }
 
     send_question(update, context)
@@ -72,6 +73,7 @@ def send_question(update, context):
     user["current_q"] = q
     user["answered"] = False
     user["revealed"] = []
+    user["hint_used"] = []  # 🔥 reset tiap soal
 
     total = len(q["answers"])
 
@@ -92,9 +94,12 @@ def answer(update, context):
 
     chat_id = str(update.effective_chat.id)
     user_id = str(update.effective_user.id)
-    name = update.effective_user.first_name
 
-    text = update.message.text.lower().strip()
+    first = update.effective_user.first_name or ""
+    last = update.effective_user.last_name or ""
+    name = f"{first} {last}".strip()
+
+    user_answer = update.message.text.lower().strip()
 
     if chat_id not in user_data:
         return
@@ -110,9 +115,9 @@ def answer(update, context):
 
     answers = q["answers"]
 
-    if text in [a.lower() for a in answers]:
-        if text not in user["revealed"]:
-            user["revealed"].append(text)
+    if user_answer in [a.lower() for a in answers]:
+        if user_answer not in user["revealed"]:
+            user["revealed"].append(user_answer)
 
             try:
                 database.add_global_score(user_id, name, 10)
@@ -125,11 +130,9 @@ def answer(update, context):
 
             context.bot.send_message(
                 chat_id=int(chat_id),
-                text=f"✅ {name} benar!\n🏆 {rank_name} ({score})",
-                parse_mode="HTML"
+                text=f"✅ {name} menjawab: {user_answer.title()}\n🏆 {rank_name} ({score})"
             )
 
-    # semua jawaban terjawab
     if len(user["revealed"]) == len(answers):
         user["answered"] = True
         context.bot.send_message(chat_id=int(chat_id), text="🎉 Semua jawaban terjawab!")
@@ -142,7 +145,6 @@ def next_q(update, context):
 
     chat_id = str(update.effective_chat.id)
 
-    # 🔥 CEK GAME BELUM MULAI
     if chat_id not in user_data or not user_data[chat_id].get("active"):
         update.message.reply_text("⚠️ Game belum dimulai!")
         return
@@ -156,13 +158,23 @@ def nyerah(update, context):
         return
 
     chat_id = str(update.effective_chat.id)
+    user_id = str(update.effective_user.id)
+
+    first = update.effective_user.first_name or ""
+    last = update.effective_user.last_name or ""
+    name = f"{first} {last}".strip()
 
     if chat_id not in user_data:
         return
 
     user = user_data[chat_id]
-    q = user.get("current_q")
 
+    # 🔥 CEK SUDAH PERNAH NYERAH
+    if user_id in user.get("hint_used", []):
+        update.message.reply_text("❌ Kamu sudah pakai bocoran di soal ini!")
+        return
+
+    q = user.get("current_q")
     if not q:
         return
 
@@ -171,11 +183,21 @@ def nyerah(update, context):
     for ans in answers:
         if ans.lower() not in user["revealed"]:
             user["revealed"].append(ans.lower())
+            user["hint_used"].append(user_id)
 
-            context.bot.send_message(
-                chat_id=int(chat_id),
-                text=f"💡 Bocoran: {ans}"
-            )
+            # 🔥 FORMAT KEREN
+            text = f"{name} menyerah pada pertanyaan:\n\n"
+            text += f"{q['question']}\n\n"
+
+            for i, a in enumerate(answers, start=1):
+                if a.lower() in user["revealed"]:
+                    text += f"{i}. {a}\n"
+                else:
+                    text += f"{i}. ______\n"
+
+            text += "\nKetik /next untuk pertanyaan lain"
+
+            context.bot.send_message(chat_id=int(chat_id), text=text)
             return
 
     context.bot.send_message(chat_id=int(chat_id), text="Semua sudah kebuka!")
@@ -198,7 +220,7 @@ def leaderboard(update, context):
         rank_name = get_rank(score)
         text += f"{i}. {name} — {rank_name} ({score})\n"
 
-    update.message.reply_text(text, parse_mode="HTML")
+    update.message.reply_text(text)
 
 # ================= LEADERBOARD GRUP ==================
 
@@ -220,7 +242,7 @@ def topgrup(update, context):
         rank_name = get_rank(score)
         text += f"{i}. {name} — {rank_name} ({score})\n"
 
-    update.message.reply_text(text, parse_mode="HTML")
+    update.message.reply_text(text)
 
 # ================= STATS ==================
 
@@ -235,8 +257,7 @@ def stats(update, context):
         f"📊 Stats\n\n"
         f"🔥 MMR kamu sekarang 👉 {score}\n"
         f"🏆 RANK : {rank_name}\n"
-        f"🌍 <b>GLOBAL RANK : #{global_rank if global_rank else '-'}</b>",
-        parse_mode="HTML"
+        f"🌍 GLOBAL RANK : #{global_rank if global_rank else '-'}"
     )
 
 # ================= RUN ==================
