@@ -24,9 +24,8 @@ def start(update, context):
         ]
 
         update.message.reply_text(
-            "Halo Player, Selamat datang di QUIZ MLBB 2 🎯\n"
-            "Game tebak kata tanpa gambar!\n\n"
-            "Gunakan /start di grup untuk mulai.",
+            "Halo Player, Selamat datang di QUIZ MLBB 2 \n"
+            "Tambahkan Bot ini di GRUP TELEGRAM untuk Mulai Permainan.",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
@@ -62,7 +61,6 @@ def build_question_text(user):
     # 🔥 AMBIL PERTANYAAN
     question_title = q.get("question", "Tebak Jawaban Berikut")
 
-    text = f"🎯 QUIZ MLBB\n"
     text += f"❓ {question_title}\n\n"
 
     for i, a in enumerate(answers):
