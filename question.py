@@ -1,6 +1,6 @@
 QUESTIONS = [
     {
-        "question": "Hero Assassin MLBB",
-        "answers": ["fanny", "ling", "gusion"]
+        "question": "Sebutkan 3 hero Assassin MLBB",
+        "answers": ["Fanny", "Ling", "Hayabusa"]
     }
 ]
