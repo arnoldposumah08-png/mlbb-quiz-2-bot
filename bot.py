@@ -1,7 +1,7 @@
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from config import TOKEN
-from question import QUESTIONS
+from generator import generate_question
 from rank import get_rank
 import database
 import random
@@ -88,8 +88,7 @@ def send_question(update, context):
             user["questions"] = random.sample(QUESTIONS, len(QUESTIONS))
             user["index"] = 0
 
-        q = user["questions"][user["index"]]
-        user["index"] += 1
+        q = generate_question()
 
         user["current_q"] = q
         user["answered"] = False
