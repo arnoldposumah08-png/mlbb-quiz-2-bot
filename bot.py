@@ -40,12 +40,9 @@ def start(update, context):
         update.message.reply_text("⚠️ Game masih berjalan!")
         return
 
-    # 🔥 SHUFFLE SEKALI DI AWAL
-    shuffled = random.sample(QUESTIONS, len(QUESTIONS))
-
     user_data[chat_id] = {
         "active": True,
-        "questions": shuffled,
+        "questions": random.sample(QUESTIONS, len(QUESTIONS)),
         "index": 0,
         "current_q": None,
         "answered": False,
@@ -81,7 +78,7 @@ def send_question(update, context):
     chat_id = str(update.effective_chat.id)
     user = user_data[chat_id]
 
-    # 🔥 JIKA HABIS → RESET + SHUFFLE ULANG
+    # reset kalau habis
     if user["index"] >= len(user["questions"]):
         user["questions"] = random.sample(QUESTIONS, len(QUESTIONS))
         user["index"] = 0
@@ -103,7 +100,6 @@ def send_question(update, context):
 
 def refresh_question(context, chat_id):
     user = user_data[chat_id]
-
     text = build_question_text(user)
 
     msg = context.bot.send_message(chat_id=int(chat_id), text=text)
@@ -162,7 +158,7 @@ def answer(update, context):
             refresh_question(context, chat_id)
             break
 
-    # 🔥 AUTO LANJUT SOAL BARU
+    # auto next
     if len(user["answered_by"]) == len(answers):
         user["answered"] = True
 
@@ -216,7 +212,7 @@ def nyerah(update, context):
 
     refresh_question(context, chat_id)
 
-# ================= LEADERBOARD ==================
+# ================= LEADERBOARD GLOBAL ==================
 
 def leaderboard(update, context):
     if not group_only(update):
@@ -236,6 +232,44 @@ def leaderboard(update, context):
 
     update.message.reply_text(text)
 
+# ================= LEADERBOARD GRUP ==================
+
+def topgrup(update, context):
+    if not group_only(update):
+        return
+
+    chat_id = str(update.effective_chat.id)
+
+    data = database.get_group_leaderboard(chat_id)
+
+    if not data:
+        update.message.reply_text("Belum ada leaderboard di grup ini.")
+        return
+
+    text = "🏆 LEADERBOARD GRUP 🏆\n\n"
+
+    for i, (name, score) in enumerate(data, start=1):
+        rank_name = get_rank(score)
+        text += f"{i}. {name} — {rank_name} ({score})\n"
+
+    update.message.reply_text(text)
+
+# ================= STATS ==================
+
+def stats(update, context):
+    user_id = str(update.effective_user.id)
+
+    score = database.get_user_score(user_id) or 0
+    rank_name = get_rank(score)
+    global_rank = database.get_global_rank(user_id)
+
+    update.message.reply_text(
+        f"📊 Stats\n\n"
+        f"🔥 MMR kamu sekarang 👉 {score}\n"
+        f"🏆 RANK : {rank_name}\n"
+        f"🌍 GLOBAL RANK : #{global_rank if global_rank else '-'}"
+    )
+
 # ================= RUN ==================
 
 def main():
@@ -248,6 +282,8 @@ def main():
     dp.add_handler(CommandHandler("next", next_q))
     dp.add_handler(CommandHandler("nyerah", nyerah))
     dp.add_handler(CommandHandler("leaderboard", leaderboard))
+    dp.add_handler(CommandHandler("topgrup", topgrup))
+    dp.add_handler(CommandHandler("stats", stats))
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, answer))
 
     print("BOT MLBB 2 RUNNING...")
