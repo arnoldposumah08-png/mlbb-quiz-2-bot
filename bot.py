@@ -78,7 +78,6 @@ def send_question(update, context):
     chat_id = str(update.effective_chat.id)
     user = user_data[chat_id]
 
-    # reset kalau habis
     if user["index"] >= len(user["questions"]):
         user["questions"] = random.sample(QUESTIONS, len(QUESTIONS))
         user["index"] = 0
@@ -150,15 +149,14 @@ def answer(update, context):
             user["answered_by"][idx] = name
 
             try:
-                database.add_global_score(user_id, name, 10)
-                database.add_group_score(chat_id, user_id, name, 10)
+                database.add_global_score(user_id, name, 25)
+                database.add_group_score(chat_id, user_id, name, 25)
             except Exception as e:
                 print("DB ERROR:", e)
 
             refresh_question(context, chat_id)
             break
 
-    # auto next
     if len(user["answered_by"]) == len(answers):
         user["answered"] = True
 
@@ -230,7 +228,7 @@ def leaderboard(update, context):
         rank_name = get_rank(score)
         text += f"{i}. {name} — {rank_name} ({score})\n"
 
-    update.message.reply_text(text)
+    update.message.reply_text(text, parse_mode="HTML")
 
 # ================= LEADERBOARD GRUP ==================
 
@@ -252,7 +250,7 @@ def topgrup(update, context):
         rank_name = get_rank(score)
         text += f"{i}. {name} — {rank_name} ({score})\n"
 
-    update.message.reply_text(text)
+    update.message.reply_text(text, parse_mode="HTML")
 
 # ================= STATS ==================
 
@@ -267,7 +265,8 @@ def stats(update, context):
         f"📊 Stats\n\n"
         f"🔥 MMR kamu sekarang 👉 {score}\n"
         f"🏆 RANK : {rank_name}\n"
-        f"🌍 GLOBAL RANK : #{global_rank if global_rank else '-'}"
+        f"🌍 GLOBAL RANK : #{global_rank if global_rank else '-'}",
+        parse_mode="HTML"
     )
 
 # ================= RUN ==================
