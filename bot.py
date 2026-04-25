@@ -116,7 +116,7 @@ def refresh_question(context, chat_id):
     except Exception as e:
         print("REFRESH ERROR:", e)
 
-# ================= ANSWER ==================
+# ================= ANSWER (FIX MULTI ANSWER) ==================
 
 def answer(update, context):
     if not group_only(update):
@@ -134,33 +134,38 @@ def answer(update, context):
     if not user.get("active") or user.get("answered"):
         return
 
-    msg = update.message.text.strip().lower()
+    msg = update.message.text.lower().strip()
     q = user["current_q"]
 
-    for idx, ans in enumerate(q["answers"]):
-        if msg == ans.lower():
+    # 🔥 SUPPORT MULTI ANSWER
+    inputs = [x.strip() for x in msg.replace("\n", ",").split(",") if x.strip()]
 
-            if idx in user["answered_by"]:
-                return
+    updated = False
 
-            user["answered_by"][idx] = name
+    for inp in inputs:
+        for idx, ans in enumerate(q["answers"]):
 
-            try:
-                database.add_global_score(user_id, name, 25)
-                database.add_group_score(chat_id, user_id, name, 25)
-            except:
-                pass
+            if inp == ans.lower():
 
-            if len(user["answered_by"]) == len(q["answers"]):
-                user["answered"] = True
+                if idx in user["answered_by"]:
+                    continue
 
-            refresh_question(context, chat_id)
+                user["answered_by"][idx] = name
+                updated = True
 
-            if user["answered"]:
-                context.bot.send_message(chat_id=int(chat_id), text="➡️ Soal baru...")
-                send_question(update, context)
+                try:
+                    database.add_global_score(user_id, name, 25)
+                    database.add_group_score(chat_id, user_id, name, 25)
+                except:
+                    pass
 
-            break
+    if updated:
+        refresh_question(context, chat_id)
+
+    if len(user["answered_by"]) == len(q["answers"]):
+        user["answered"] = True
+        context.bot.send_message(chat_id=int(chat_id), text="➡️ Soal baru...")
+        send_question(update, context)
 
 # ================= NEXT ==================
 
