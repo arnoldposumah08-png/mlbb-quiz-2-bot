@@ -1,277 +1,98 @@
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from config import TOKEN
-from generator import generate_question
-from rank import get_rank
-import database
+import random
+from heroes import HEROES
+from items import ITEMS
+from spells import SPELLS
 
-user_data = {}
 
-# ================= UTIL ==================
+def safe_sample(pool, min_show=5, max_show=10):
+    """biar aman kalau data kecil"""
+    if not pool:
+        return []
 
-def group_only(update):
-    return update.effective_chat and update.effective_chat.type in ["group", "supergroup"]
+    size = min(len(pool), random.randint(min_show, max_show))
+    return random.sample(pool, size)
 
-# ================= START ==================
 
-def start(update, context):
-    chat = update.effective_chat
+def generate_question():
 
-    if chat.type == "private":
-        keyboard = [
-            [InlineKeyboardButton("Dev", url="https://t.me/yasanyamagurai")],
-            [InlineKeyboardButton("Tambahkan ke GRUP", url="https://t.me/quizmlbb2_bot?startgroup=true")]
-        ]
+    q_type = random.choice([
+        "hero_role",
+        "hero_lane",
+        "hero_region",
+        "item_type",
+        "spell"
+    ])
 
-        update.message.reply_text(
-            "🎯 QUIZ MLBB 2\n\nTambahkan bot ini ke grup untuk mulai bermain!",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-        return
+    # ================= HERO ROLE =================
+    if q_type == "hero_role":
+        role = random.choice(["Assassin", "Fighter", "Mage", "Tank", "Marksman", "Support"])
 
-    chat_id = str(chat.id)
+        full_pool = [h for h, v in HEROES.items() if role in v["role"]]
 
-    if chat_id in user_data and user_data[chat_id].get("active"):
-        update.message.reply_text("⚠️ Game masih berjalan!")
-        return
+        if not full_pool:
+            return generate_question()
 
-    user_data[chat_id] = {
-        "active": True,
-        "current_q": None,
-        "answered": False,
-        "answered_by": {},
-        "hint_used": set(),
-        "last_q_msg": None
-    }
+        return {
+            "question": f"Sebutkan hero {role.upper()}",
+            "answers": full_pool,
+            "display": safe_sample(full_pool)
+        }
 
-    send_question(update, context)
+    # ================= HERO LANE =================
+    if q_type == "hero_lane":
+        lane = random.choice(["EXP", "Jungle", "Mid", "Gold", "Roam"])
 
-# ================= QUESTION ==================
+        full_pool = [h for h, v in HEROES.items() if lane in v["lane"]]
 
-def build_question_text(user):
-    q = user["current_q"]
+        if not full_pool:
+            return generate_question()
 
-    display = q.get("display") or q["answers"][:10]
+        return {
+            "question": f"Sebutkan hero {lane.upper()} lane",
+            "answers": full_pool,
+            "display": safe_sample(full_pool)
+        }
 
-    text = f"❓ {q['question']}\n\n"
+    # ================= HERO REGION =================
+    if q_type == "hero_region":
+        regions = list(set(v["region"] for v in HEROES.values()))
+        region = random.choice(regions)
 
-    for i, a in enumerate(display):
-        text += f"{i+1}. {a}\n"
+        full_pool = [h for h, v in HEROES.items() if v["region"] == region]
 
-    if not user["answered"]:
-        text += "\n💡 /next untuk skip\n💡 /nyerah untuk bantuan"
-    else:
-        text += "\n\n🎉 Semua terjawab!"
+        if not full_pool:
+            return generate_question()
 
-    return text
+        return {
+            "question": f"Sebutkan hero dari region {region}",
+            "answers": full_pool,
+            "display": safe_sample(full_pool)
+        }
 
-# ================= SEND QUESTION ==================
+    # ================= ITEM =================
+    if q_type == "item_type":
+        tipe = random.choice(["attack", "magic", "defense"])
 
-def send_question(update, context):
-    chat_id = str(update.effective_chat.id)
+        full_pool = [i for i, v in ITEMS.items() if v["type"] == tipe]
 
-    if chat_id not in user_data:
-        return
+        if not full_pool:
+            return generate_question()
 
-    user = user_data[chat_id]
+        return {
+            "question": f"Sebutkan item {tipe.upper()}",
+            "answers": full_pool,
+            "display": safe_sample(full_pool)
+        }
 
-    q = generate_question()
-    if not q:
-        return send_question(update, context)
+    # ================= SPELL =================
+    if q_type == "spell":
+        if not SPELLS:
+            return generate_question()
 
-    user["current_q"] = q
-    user["answered"] = False
-    user["answered_by"] = {}
-    user["hint_used"] = set()
+        return {
+            "question": "Sebutkan battle spell MLBB",
+            "answers": SPELLS,
+            "display": safe_sample(SPELLS)
+        }
 
-    text = build_question_text(user)
-
-    msg = context.bot.send_message(chat_id=int(chat_id), text=text)
-    user["last_q_msg"] = msg.message_id
-
-# ================= REFRESH ==================
-
-def refresh_question(context, chat_id):
-    try:
-        user = user_data.get(chat_id)
-        if not user:
-            return
-
-        text = build_question_text(user)
-
-        msg = context.bot.send_message(chat_id=int(chat_id), text=text)
-
-        old = user.get("last_q_msg")
-        if old:
-            try:
-                context.bot.delete_message(chat_id=int(chat_id), message_id=old)
-            except:
-                pass
-
-        user["last_q_msg"] = msg.message_id
-
-    except Exception as e:
-        print("REFRESH ERROR:", e)
-
-# ================= ANSWER (FIX CORE LOGIC) ==================
-
-def answer(update, context):
-    if not group_only(update):
-        return
-
-    chat_id = str(update.effective_chat.id)
-    user_id = str(update.effective_user.id)
-    name = update.effective_user.first_name or "User"
-
-    if chat_id not in user_data:
-        return
-
-    user = user_data[chat_id]
-
-    if not user.get("active") or user.get("answered"):
-        return
-
-    msg = update.message.text.strip().lower()
-    q = user["current_q"]
-
-    # normalize answers (STRICT MODE)
-    answers = [a.strip().lower() for a in q["answers"]]
-
-    # multi input support
-    inputs = [x.strip() for x in msg.replace("\n", ",").split(",") if x.strip()]
-
-    updated = False
-
-    for inp in inputs:
-
-        # ❗ STRICT MATCH ONLY (NO PARTIAL / NO FUZZY)
-        if inp not in answers:
-            continue
-
-        idx = answers.index(inp)
-
-        if idx in user["answered_by"]:
-            continue
-
-        user["answered_by"][idx] = name
-        updated = True
-
-        try:
-            database.add_global_score(user_id, name, 25)
-            database.add_group_score(chat_id, user_id, name, 25)
-        except:
-            pass
-
-    if updated:
-        refresh_question(context, chat_id)
-
-    if len(user["answered_by"]) >= len(q["answers"]):
-        user["answered"] = True
-        context.bot.send_message(chat_id=int(chat_id), text="➡️ Soal baru...")
-        send_question(update, context)
-
-# ================= NEXT ==================
-
-def next_q(update, context):
-    chat_id = str(update.effective_chat.id)
-
-    if chat_id not in user_data:
-        update.message.reply_text("⚠️ Game belum dimulai!")
-        return
-
-    send_question(update, context)
-
-# ================= NYERAH ==================
-
-def nyerah(update, context):
-    chat_id = str(update.effective_chat.id)
-    user_id = str(update.effective_user.id)
-
-    if chat_id not in user_data:
-        return
-
-    user = user_data[chat_id]
-
-    if user_id in user["hint_used"]:
-        update.message.reply_text("❌ Sudah pakai bantuan!")
-        return
-
-    q = user["current_q"]
-
-    for idx, ans in enumerate(q["answers"]):
-        if idx not in user["answered_by"]:
-            user["answered_by"][idx] = "🤖 bot"
-            user["hint_used"].add(user_id)
-            break
-
-    refresh_question(context, chat_id)
-
-# ================= LEADERBOARD ==================
-
-def leaderboard(update, context):
-    data = database.get_global_leaderboard()
-
-    if not data:
-        update.message.reply_text("Belum ada data.")
-        return
-
-    text = "🏆 GLOBAL LEADERBOARD\n\n"
-
-    for i, (name, score) in enumerate(data, 1):
-        text += f"{i}. {name} — {get_rank(score)} ({score})\n"
-
-    update.message.reply_text(text)
-
-# ================= GROUP TOP ==================
-
-def topgrup(update, context):
-    chat_id = str(update.effective_chat.id)
-    data = database.get_group_leaderboard(chat_id)
-
-    if not data:
-        update.message.reply_text("Belum ada data grup.")
-        return
-
-    text = "🏆 LEADERBOARD GRUP\n\n"
-
-    for i, (name, score) in enumerate(data, 1):
-        text += f"{i}. {name} — {get_rank(score)} ({score})\n"
-
-    update.message.reply_text(text)
-
-# ================= STATS ==================
-
-def stats(update, context):
-    user_id = str(update.effective_user.id)
-
-    score = database.get_user_score(user_id) or 0
-
-    update.message.reply_text(
-        f"📊 STATS\n\n"
-        f"🔥 MMR: {score}\n"
-        f"🏆 RANK: {get_rank(score)}"
-    )
-
-# ================= MAIN ==================
-
-def main():
-    database.init_db()
-
-    updater = Updater(TOKEN, use_context=True)
-    dp = updater.dispatcher
-
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("next", next_q))
-    dp.add_handler(CommandHandler("nyerah", nyerah))
-    dp.add_handler(CommandHandler("leaderboard", leaderboard))
-    dp.add_handler(CommandHandler("topgrup", topgrup))
-    dp.add_handler(CommandHandler("stats", stats))
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, answer))
-
-    print("BOT MLBB RUNNING...")
-
-    updater.start_polling()
-    updater.idle()
-
-if __name__ == "__main__":
-    main()
+    return generate_question()
