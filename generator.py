@@ -8,75 +8,77 @@ LETTERS = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 def generate_question():
 
-    q_type = random.choice([
-        "hero_role",
-        "hero_lane",
-        "item_type",
-        "spell"
-    ])
+    for _ in range(10):  # 🔥 coba max 10x biar dapat soal bagus
 
-    letter = random.choice(LETTERS)
+        q_type = random.choice([
+            "hero_role",
+            "hero_lane",
+            "item_type",
+            "spell"
+        ])
 
-    # ================= HERO ROLE =================
-    if q_type == "hero_role":
-        role = random.choice(["Assassin", "Fighter", "Mage", "Tank", "Marksman", "Support"])
+        letter = random.choice(LETTERS)
 
-        answers = [
-            h for h, v in HEROES.items()
-            if role in v["role"] and h.upper().startswith(letter)
-        ]
+        # ================= HERO ROLE =================
+        if q_type == "hero_role":
+            role = random.choice(["Assassin", "Fighter", "Mage", "Tank", "Marksman", "Support"])
 
-        if answers:
-            return {
-                "question": f"Sebutkan hero {role.upper()} huruf {letter}",
-                "answers": answers
-            }
+            answers = [
+                h for h, v in HEROES.items()
+                if role in v["role"] and h.upper().startswith(letter)
+            ]
 
-    # ================= HERO LANE =================
-    if q_type == "hero_lane":
-        lane = random.choice(["EXP", "Jungle", "Mid", "Gold", "Roam"])
+            if len(answers) >= 2:
+                return {
+                    "question": f"Sebutkan hero {role.upper()} huruf {letter}",
+                    "answers": list(set(answers))
+                }
 
-        answers = [
-            h for h, v in HEROES.items()
-            if lane in v["lane"] and h.upper().startswith(letter)
-        ]
+        # ================= HERO LANE =================
+        if q_type == "hero_lane":
+            lane = random.choice(["EXP", "Jungle", "Mid", "Gold", "Roam"])
 
-        if answers:
-            return {
-                "question": f"Sebutkan hero {lane.upper()} huruf {letter}",
-                "answers": answers
-            }
+            answers = [
+                h for h, v in HEROES.items()
+                if lane in v["lane"] and h.upper().startswith(letter)
+            ]
 
-    # ================= ITEM =================
-    if q_type == "item_type":
-        tipe = random.choice(["attack", "magic", "defense"])
+            if len(answers) >= 2:
+                return {
+                    "question": f"Sebutkan hero {lane.upper()} huruf {letter}",
+                    "answers": list(set(answers))
+                }
 
-        answers = [
-            i for i, v in ITEMS.items()
-            if v["type"] == tipe and i.upper().startswith(letter)
-        ]
+        # ================= ITEM =================
+        if q_type == "item_type":
+            tipe = random.choice(["attack", "magic", "defense"])
 
-        if answers:
-            return {
-                "question": f"Sebutkan item {tipe.upper()} huruf {letter}",
-                "answers": answers
-            }
+            answers = [
+                i for i, v in ITEMS.items()
+                if v["type"] == tipe and i.upper().startswith(letter)
+            ]
 
-    # ================= SPELL =================
-    if q_type == "spell":
+            if len(answers) >= 2:
+                return {
+                    "question": f"Sebutkan item {tipe.upper()} huruf {letter}",
+                    "answers": list(set(answers))
+                }
 
-        answers = [
-            s for s in SPELLS
-            if s.upper().startswith(letter)
-        ]
+        # ================= SPELL =================
+        if q_type == "spell":
 
-        if answers:
-            return {
-                "question": f"Sebutkan battle spell huruf {letter}",
-                "answers": answers
-            }
+            answers = [
+                s for s in SPELLS
+                if s.upper().startswith(letter)
+            ]
 
-    # fallback biar tidak kosong
+            if len(answers) >= 2:
+                return {
+                    "question": f"Sebutkan battle spell huruf {letter}",
+                    "answers": list(set(answers))
+                }
+
+    # ================= FALLBACK =================
     return {
         "question": "Sebutkan battle spell MLBB",
         "answers": SPELLS
