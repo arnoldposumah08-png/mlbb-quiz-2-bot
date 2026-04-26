@@ -55,14 +55,23 @@ def start(update, context):
 
 def build_question_text(user):
     q = user["current_q"]
+    total = len(q["answers"])
 
     text = f"❓ {q['question']}\n\n"
-    text += "✍️ Ketik jawaban kamu (bisa lebih dari 1, pisahkan dengan koma)\n"
+
+    for i in range(total):
+        if i in user["answered_by"]:
+            hero_name = q["answers"][i]
+            player = user["answered_by"][i]
+            text += f"{i+1}. {hero_name} (+25) [{player}]\n"
+        else:
+            text += f"{i+1}. ______\n"
 
     if not user["answered"]:
-        text += "\n💡 /next untuk skip\n💡 /nyerah untuk bantuan"
+        text += "\nSilahkan /next jika soalnya susah bosque^^"
+        text += "\natau gunakan /nyerah untuk spill jawaban^^"
     else:
-        text += "\n\n🎉 Semua terjawab!"
+        text += "\n\n🎉 Semua jawaban terjawab! Soal berikutnya.."
 
     return text
 
@@ -138,7 +147,9 @@ def answer(update, context):
     msg = normalize(update.message.text)
 
     q = user["current_q"]
-    answers = [normalize(a) for a in q["answers"]]
+
+    # mapping jawaban biar anti double
+    answer_map = {normalize(a): i for i, a in enumerate(q["answers"])}
 
     inputs = [x.strip() for x in msg.replace("\n", ",").split(",") if x.strip()]
 
@@ -147,28 +158,31 @@ def answer(update, context):
     for inp in inputs:
         inp = normalize(inp)
 
-        for idx, ans in enumerate(answers):
-            if inp == ans:
+        if inp not in answer_map:
+            continue
 
-                if idx in user["answered_by"]:
-                    continue
+        idx = answer_map[inp]
 
-                user["answered_by"][idx] = name
-                updated = True
+        # 🔥 ANTI DOUBLE
+        if idx in user["answered_by"]:
+            continue
 
-                try:
-                    database.add_global_score(user_id, name, 25)
-                    database.add_group_score(chat_id, user_id, name, 25)
-                except:
-                    pass
+        user["answered_by"][idx] = name
+        updated = True
+
+        try:
+            database.add_global_score(user_id, name, 25)
+            database.add_group_score(chat_id, user_id, name, 25)
+        except:
+            pass
 
     if updated:
         refresh_question(context, chat_id)
 
-    if len(user["answered_by"]) == len(answers):
+    # kalau semua sudah kejawab
+    if len(user["answered_by"]) == len(q["answers"]):
         user["answered"] = True
-        context.bot.send_message(chat_id=int(chat_id), text="➡️ Soal baru...")
-        send_question(update, context)
+        refresh_question(context, chat_id)
 
 
 # ================= NEXT ==================
