@@ -12,11 +12,6 @@ user_data = {}
 def group_only(update):
     return update.effective_chat and update.effective_chat.type in ["group", "supergroup"]
 
-
-def normalize(text):
-    return text.lower().strip()
-
-
 # ================= START ==================
 
 def start(update, context):
@@ -51,11 +46,11 @@ def start(update, context):
 
     send_question(update, context)
 
-
 # ================= QUESTION ==================
 
 def build_question_text(user):
     q = user["current_q"]
+
     display = q.get("display") or q["answers"][:10]
 
     text = f"❓ {q['question']}\n\n"
@@ -69,7 +64,6 @@ def build_question_text(user):
         text += "\n\n🎉 Semua terjawab!"
 
     return text
-
 
 # ================= SEND QUESTION ==================
 
@@ -95,62 +89,6 @@ def send_question(update, context):
     msg = context.bot.send_message(chat_id=int(chat_id), text=text)
     user["last_q_msg"] = msg.message_id
 
-
-# ================= ANSWER (FIX UTAMA DI SINI) ==================
-
-def answer(update, context):
-    if not group_only(update):
-        return
-
-    chat_id = str(update.effective_chat.id)
-    user_id = str(update.effective_user.id)
-    name = update.effective_user.first_name or "User"
-
-    if chat_id not in user_data:
-        return
-
-    user = user_data[chat_id]
-
-    if not user.get("active") or user.get("answered"):
-        return
-
-    msg = normalize(update.message.text)
-
-    q = user["current_q"]
-
-    answers = [normalize(a) for a in q["answers"]]
-
-    inputs = [x.strip() for x in msg.replace("\n", ",").split(",") if x.strip()]
-
-    updated = False
-
-    for inp in inputs:
-        inp = normalize(inp)
-
-        for idx, ans in enumerate(answers):
-            if inp == ans:
-
-                if idx in user["answered_by"]:
-                    continue
-
-                user["answered_by"][idx] = name
-                updated = True
-
-                try:
-                    database.add_global_score(user_id, name, 25)
-                    database.add_group_score(chat_id, user_id, name, 25)
-                except:
-                    pass
-
-    if updated:
-        refresh_question(context, chat_id)
-
-    if len(user["answered_by"]) == len(answers):
-        user["answered"] = True
-        context.bot.send_message(chat_id=int(chat_id), text="➡️ Soal baru...")
-        send_question(update, context)
-
-
 # ================= REFRESH ==================
 
 def refresh_question(context, chat_id):
@@ -175,6 +113,62 @@ def refresh_question(context, chat_id):
     except Exception as e:
         print("REFRESH ERROR:", e)
 
+# ================= ANSWER (FIX CORE LOGIC) ==================
+
+def answer(update, context):
+    if not group_only(update):
+        return
+
+    chat_id = str(update.effective_chat.id)
+    user_id = str(update.effective_user.id)
+    name = update.effective_user.first_name or "User"
+
+    if chat_id not in user_data:
+        return
+
+    user = user_data[chat_id]
+
+    if not user.get("active") or user.get("answered"):
+        return
+
+    msg = update.message.text.strip().lower()
+    q = user["current_q"]
+
+    # normalize answers (STRICT MODE)
+    answers = [a.strip().lower() for a in q["answers"]]
+
+    # multi input support
+    inputs = [x.strip() for x in msg.replace("\n", ",").split(",") if x.strip()]
+
+    updated = False
+
+    for inp in inputs:
+
+        # ❗ STRICT MATCH ONLY (NO PARTIAL / NO FUZZY)
+        if inp not in answers:
+            continue
+
+        idx = answers.index(inp)
+
+        if idx in user["answered_by"]:
+            continue
+
+        user["answered_by"][idx] = name
+        updated = True
+
+        try:
+            database.add_global_score(user_id, name, 25)
+            database.add_group_score(chat_id, user_id, name, 25)
+        except:
+            pass
+
+    if updated:
+        refresh_question(context, chat_id)
+
+    if len(user["answered_by"]) >= len(q["answers"]):
+        user["answered"] = True
+        context.bot.send_message(chat_id=int(chat_id), text="➡️ Soal baru...")
+        send_question(update, context)
 
 # ================= NEXT ==================
 
@@ -186,7 +180,6 @@ def next_q(update, context):
         return
 
     send_question(update, context)
-
 
 # ================= NYERAH ==================
 
@@ -213,7 +206,6 @@ def nyerah(update, context):
 
     refresh_question(context, chat_id)
 
-
 # ================= LEADERBOARD ==================
 
 def leaderboard(update, context):
@@ -229,7 +221,6 @@ def leaderboard(update, context):
         text += f"{i}. {name} — {get_rank(score)} ({score})\n"
 
     update.message.reply_text(text)
-
 
 # ================= GROUP TOP ==================
 
@@ -248,7 +239,6 @@ def topgrup(update, context):
 
     update.message.reply_text(text)
 
-
 # ================= STATS ==================
 
 def stats(update, context):
@@ -261,7 +251,6 @@ def stats(update, context):
         f"🔥 MMR: {score}\n"
         f"🏆 RANK: {get_rank(score)}"
     )
-
 
 # ================= MAIN ==================
 
@@ -283,7 +272,6 @@ def main():
 
     updater.start_polling()
     updater.idle()
-
 
 if __name__ == "__main__":
     main()
