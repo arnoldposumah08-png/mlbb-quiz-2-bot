@@ -19,8 +19,9 @@ def normalize(text):
 # ================= START ==================
 
 def start(update, context):
-    if update.effective_chat.type == "private":
+    chat = update.effective_chat  # ✅ FIX penting
 
+    if chat.type == "private":
         keyboard = [
             [InlineKeyboardButton("Dev", url="https://t.me/yasanyamagurai")],
             [InlineKeyboardButton("Tambahkan ke GRUP", url="https://t.me/quizmlbb_bot?startgroup=true")]
@@ -180,9 +181,14 @@ def answer(update, context):
     if updated:
         refresh_question(context, chat_id)
 
+    # ✅ selesai semua jawaban
     if len(user["answered_by"]) == len(q["answers"]):
         user["answered"] = True
+
+        # tampilkan notif selesai dulu
         refresh_question(context, chat_id)
+
+        # lanjut soal baru
         send_question(update, context)
 
 
@@ -271,9 +277,9 @@ def stats(update, context):
 
     update.message.reply_text(
         f"📊 Stats\n\n"
-        f"🔥MMR kamu sekarang 👉 {score}\n"
-        f"🏆RANK : {rank_name}\n"
-        f"🌍<b>GLOBAL RANK : #{global_rank if global_rank else '-'}</b>\n",
+        f"🔥 MMR kamu sekarang 👉 {score}\n"
+        f"🏆 RANK : {rank_name}\n"
+        f"🌍 <b>GLOBAL RANK : #{global_rank if global_rank else '-'}</b>\n",
         parse_mode="HTML"
     )
 
