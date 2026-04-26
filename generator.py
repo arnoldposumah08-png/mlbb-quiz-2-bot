@@ -5,7 +5,6 @@ from spells import SPELLS
 
 
 def safe_sample(pool, min_show=5, max_show=10):
-    """biar aman kalau data kecil"""
     if not pool:
         return []
 
@@ -13,7 +12,7 @@ def safe_sample(pool, min_show=5, max_show=10):
     return random.sample(pool, size)
 
 
-def generate_question():
+def pick_question():
 
     q_type = random.choice([
         "hero_role",
@@ -29,14 +28,12 @@ def generate_question():
 
         full_pool = [h for h, v in HEROES.items() if role in v["role"]]
 
-        if not full_pool:
-            return generate_question()
-
-        return {
-            "question": f"Sebutkan hero {role.upper()}",
-            "answers": full_pool,
-            "display": safe_sample(full_pool)
-        }
+        if full_pool:
+            return {
+                "question": f"Sebutkan hero {role.upper()}",
+                "answers": full_pool,
+                "display": safe_sample(full_pool)
+            }
 
     # ================= HERO LANE =================
     if q_type == "hero_lane":
@@ -44,14 +41,12 @@ def generate_question():
 
         full_pool = [h for h, v in HEROES.items() if lane in v["lane"]]
 
-        if not full_pool:
-            return generate_question()
-
-        return {
-            "question": f"Sebutkan hero {lane.upper()} lane",
-            "answers": full_pool,
-            "display": safe_sample(full_pool)
-        }
+        if full_pool:
+            return {
+                "question": f"Sebutkan hero {lane.upper()} lane",
+                "answers": full_pool,
+                "display": safe_sample(full_pool)
+            }
 
     # ================= HERO REGION =================
     if q_type == "hero_region":
@@ -60,14 +55,12 @@ def generate_question():
 
         full_pool = [h for h, v in HEROES.items() if v["region"] == region]
 
-        if not full_pool:
-            return generate_question()
-
-        return {
-            "question": f"Sebutkan hero dari region {region}",
-            "answers": full_pool,
-            "display": safe_sample(full_pool)
-        }
+        if full_pool:
+            return {
+                "question": f"Sebutkan hero dari region {region}",
+                "answers": full_pool,
+                "display": safe_sample(full_pool)
+            }
 
     # ================= ITEM =================
     if q_type == "item_type":
@@ -75,24 +68,30 @@ def generate_question():
 
         full_pool = [i for i, v in ITEMS.items() if v["type"] == tipe]
 
-        if not full_pool:
-            return generate_question()
-
-        return {
-            "question": f"Sebutkan item {tipe.upper()}",
-            "answers": full_pool,
-            "display": safe_sample(full_pool)
-        }
+        if full_pool:
+            return {
+                "question": f"Sebutkan item {tipe.upper()}",
+                "answers": full_pool,
+                "display": safe_sample(full_pool)
+            }
 
     # ================= SPELL =================
     if q_type == "spell":
-        if not SPELLS:
-            return generate_question()
+        if SPELLS:
+            return {
+                "question": "Sebutkan battle spell MLBB",
+                "answers": SPELLS,
+                "display": safe_sample(SPELLS)
+            }
 
-        return {
-            "question": "Sebutkan battle spell MLBB",
-            "answers": SPELLS,
-            "display": safe_sample(SPELLS)
-        }
+    # ❗ FALLBACK AMAN (NO RECURSION)
+    # instead of generate_question() recursion (danger)
+    return {
+        "question": "Sebutkan battle spell MLBB",
+        "answers": SPELLS,
+        "display": safe_sample(SPELLS)
+    }
 
-    return generate_question()
+
+def generate_question():
+    return pick_question()
