@@ -51,6 +51,7 @@ def start(update, context):
 def build_question_text(user):
     q = user["current_q"]
 
+    # aman kalau display tidak ada
     display = q.get("display") or q["answers"][:10]
 
     text = f"❓ {q['question']}\n\n"
@@ -113,7 +114,7 @@ def refresh_question(context, chat_id):
     except Exception as e:
         print("REFRESH ERROR:", e)
 
-# ================= ANSWER (FIX CORE LOGIC) ==================
+# ================= ANSWER ==================
 
 def answer(update, context):
     if not group_only(update):
@@ -131,41 +132,38 @@ def answer(update, context):
     if not user.get("active") or user.get("answered"):
         return
 
-    msg = update.message.text.strip().lower()
+    msg = update.message.text.lower().strip()
+
+    # support multi answer
+    inputs = [x.strip() for x in msg.replace("\n", ",").split(",") if x.strip()]
+
     q = user["current_q"]
 
-    # normalize answers (STRICT MODE)
-    answers = [a.strip().lower() for a in q["answers"]]
-
-    # multi input support
-    inputs = [x.strip() for x in msg.replace("\n", ",").split(",") if x.strip()]
+    # NORMALIZE ANSWERS
+    answers = [a.lower() for a in q["answers"]]
 
     updated = False
 
     for inp in inputs:
+        if inp in answers:
+            idx = answers.index(inp)
 
-        # ❗ STRICT MATCH ONLY (NO PARTIAL / NO FUZZY)
-        if inp not in answers:
-            continue
+            if idx in user["answered_by"]:
+                continue
 
-        idx = answers.index(inp)
+            user["answered_by"][idx] = name
+            updated = True
 
-        if idx in user["answered_by"]:
-            continue
-
-        user["answered_by"][idx] = name
-        updated = True
-
-        try:
-            database.add_global_score(user_id, name, 25)
-            database.add_group_score(chat_id, user_id, name, 25)
-        except:
-            pass
+            try:
+                database.add_global_score(user_id, name, 25)
+                database.add_group_score(chat_id, user_id, name, 25)
+            except:
+                pass
 
     if updated:
         refresh_question(context, chat_id)
 
-    if len(user["answered_by"]) >= len(q["answers"]):
+    if len(user["answered_by"]) == len(q["answers"]):
         user["answered"] = True
         context.bot.send_message(chat_id=int(chat_id), text="➡️ Soal baru...")
         send_question(update, context)
