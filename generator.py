@@ -5,16 +5,24 @@ from spells import SPELLS
 
 LETTERS = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
+# 🔥 counter global
+question_counter = 0
+
 
 def generate_question():
+    global question_counter
 
-    for _ in range(10):  # 🔥 coba max 10x biar dapat soal bagus
+    # 🔥 setiap 11 soal → 1 spell
+    if question_counter >= 10:
+        question_counter = 0
+        return generate_spell_question()
 
+    # selain itu = hero/item
+    for _ in range(10):
         q_type = random.choice([
             "hero_role",
             "hero_lane",
-            "item_type",
-            "spell"
+            "item_type"
         ])
 
         letter = random.choice(LETTERS)
@@ -29,6 +37,7 @@ def generate_question():
             ]
 
             if len(answers) >= 2:
+                question_counter += 1
                 return {
                     "question": f"Sebutkan hero {role.upper()} huruf {letter}",
                     "answers": list(set(answers))
@@ -44,6 +53,7 @@ def generate_question():
             ]
 
             if len(answers) >= 2:
+                question_counter += 1
                 return {
                     "question": f"Sebutkan hero {lane.upper()} huruf {letter}",
                     "answers": list(set(answers))
@@ -59,26 +69,38 @@ def generate_question():
             ]
 
             if len(answers) >= 2:
+                question_counter += 1
                 return {
                     "question": f"Sebutkan item {tipe.upper()} huruf {letter}",
                     "answers": list(set(answers))
                 }
 
-        # ================= SPELL =================
-        if q_type == "spell":
+    # fallback kalau gagal
+    question_counter += 1
+    return {
+        "question": "Sebutkan hero MLBB",
+        "answers": list(HEROES.keys())
+    }
 
-            answers = [
-                s for s in SPELLS
-                if s.upper().startswith(letter)
-            ]
 
-            if len(answers) >= 2:
-                return {
-                    "question": f"Sebutkan battle spell huruf {letter}",
-                    "answers": list(set(answers))
-                }
+# ================= SPELL FUNCTION =================
 
-    # ================= FALLBACK =================
+def generate_spell_question():
+    for _ in range(10):
+        letter = random.choice(LETTERS)
+
+        answers = [
+            s for s in SPELLS
+            if s.upper().startswith(letter)
+        ]
+
+        if len(answers) >= 2:
+            return {
+                "question": f"Sebutkan battle spell huruf {letter}",
+                "answers": list(set(answers))
+            }
+
+    # fallback spell
     return {
         "question": "Sebutkan battle spell MLBB",
         "answers": SPELLS
