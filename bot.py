@@ -24,8 +24,7 @@ def start(update, context):
         ]
 
         update.message.reply_text(
-            "🎯 QUIZ MLBB 2\n\n"
-            "Tambahkan bot ini ke grup untuk mulai bermain!",
+            "🎯 QUIZ MLBB 2\n\nTambahkan bot ini ke grup untuk mulai bermain!",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
@@ -52,8 +51,8 @@ def start(update, context):
 def build_question_text(user):
     q = user["current_q"]
 
-    # pakai display kalau ada (biar tidak spam full list)
-    display = q.get("display", q["answers"])
+    # aman kalau display tidak ada
+    display = q.get("display") or q["answers"][:10]
 
     text = f"❓ {q['question']}\n\n"
 
@@ -139,6 +138,8 @@ def answer(update, context):
     inputs = [x.strip() for x in msg.replace("\n", ",").split(",") if x.strip()]
 
     q = user["current_q"]
+
+    # NORMALIZE ANSWERS
     answers = [a.lower() for a in q["answers"]]
 
     updated = False
@@ -162,7 +163,7 @@ def answer(update, context):
     if updated:
         refresh_question(context, chat_id)
 
-    if len(user["answered_by"]) == len(answers):
+    if len(user["answered_by"]) == len(q["answers"]):
         user["answered"] = True
         context.bot.send_message(chat_id=int(chat_id), text="➡️ Soal baru...")
         send_question(update, context)
