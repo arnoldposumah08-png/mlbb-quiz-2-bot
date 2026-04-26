@@ -20,10 +20,13 @@ def generate_question():
 
         pool = [h for h, v in HEROES.items() if role in v["role"]]
 
-        if len(pool) >= 1:
+        if len(pool) >= 3:
+            limit = min(len(pool), random.randint(5, 10))
+            answers = random.sample(pool, limit)
+
             return {
-                "question": f"Sebutkan semua hero {role.upper()}",
-                "answers": pool
+                "question": f"Sebutkan {limit} hero {role.upper()}",
+                "answers": answers
             }
 
     # ================= HERO LANE =================
@@ -32,10 +35,13 @@ def generate_question():
 
         pool = [h for h, v in HEROES.items() if lane in v["lane"]]
 
-        if len(pool) >= 1:
+        if len(pool) >= 3:
+            limit = min(len(pool), random.randint(5, 10))
+            answers = random.sample(pool, limit)
+
             return {
-                "question": f"Sebutkan semua hero {lane.upper()} lane",
-                "answers": pool
+                "question": f"Sebutkan {limit} hero {lane.upper()} lane",
+                "answers": answers
             }
 
     # ================= HERO REGION =================
@@ -45,10 +51,13 @@ def generate_question():
 
         pool = [h for h, v in HEROES.items() if v["region"] == region]
 
-        if len(pool) >= 1:
+        if len(pool) >= 3:
+            limit = min(len(pool), random.randint(5, 10))
+            answers = random.sample(pool, limit)
+
             return {
-                "question": f"Sebutkan semua hero dari region {region}",
-                "answers": pool
+                "question": f"Sebutkan {limit} hero dari region {region}",
+                "answers": answers
             }
 
     # ================= ITEM =================
@@ -57,18 +66,23 @@ def generate_question():
 
         pool = [i for i, v in ITEMS.items() if v["type"] == tipe]
 
-        if len(pool) >= 1:
+        if len(pool) >= 3:
+            limit = min(len(pool), random.randint(5, 10))
+            answers = random.sample(pool, limit)
+
             return {
-                "question": f"Sebutkan semua item {tipe.upper()}",
-                "answers": pool
+                "question": f"Sebutkan {limit} item {tipe.upper()}",
+                "answers": answers
             }
 
     # ================= SPELL =================
     if q_type == "spell":
-        if len(SPELLS) >= 1:
-            return {
-                "question": "Sebutkan semua battle spell MLBB",
-                "answers": SPELLS
-            }
+        limit = min(len(SPELLS), random.randint(5, 10))
+        answers = random.sample(SPELLS, limit)
+
+        return {
+            "question": f"Sebutkan {limit} battle spell MLBB",
+            "answers": answers
+        }
 
     return generate_question()
