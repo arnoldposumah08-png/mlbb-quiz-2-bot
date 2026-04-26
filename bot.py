@@ -19,12 +19,11 @@ def normalize(text):
 # ================= START ==================
 
 def start(update, context):
-    chat = update.effective_chat
+    if update.effective_chat.type == "private":
 
-    if chat.type == "private":
         keyboard = [
             [InlineKeyboardButton("Dev", url="https://t.me/yasanyamagurai")],
-            [InlineKeyboardButton("Tambahkan ke GRUP", url="https://t.me/quizmlbb2_bot?startgroup=true")]
+            [InlineKeyboardButton("Tambahkan ke GRUP", url="https://t.me/quizmlbb_bot?startgroup=true")]
         ]
 
         update.message.reply_text(
@@ -32,6 +31,9 @@ def start(update, context):
             "Tambahkan Bot ini di GRUP TELEGRAM untuk Mulai Permainan.",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
+        return
+
+    if not group_only(update):
         return
 
     chat_id = str(chat.id)
