@@ -28,7 +28,8 @@ def start(update, context):
         ]
 
         update.message.reply_text(
-            "🎯 QUIZ MLBB 2\n\nTambahkan bot ini ke grup untuk mulai bermain!",
+            "Halo Player, Selamat bergabung di QUIZ MLBB ID.\n"
+            "Tambahkan Bot ini di GRUP TELEGRAM untuk Mulai Permainan.",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
