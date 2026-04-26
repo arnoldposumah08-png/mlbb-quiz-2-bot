@@ -3,156 +3,89 @@ from heroes import HEROES
 from items import ITEMS
 from spells import SPELLS
 
-LETTERS = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
-# 🔥 counter global
-question_counter = 0
-
-# 🔥 anti soal kembar
-recent_questions = []
+question_pool = []
+used_questions = []
 
 
-def is_duplicate(q):
-    return q in recent_questions
+def build_question_pool():
+    pool = []
 
+    # ================= HERO ROLE =================
+    roles = ["Assassin", "Fighter", "Mage", "Tank", "Marksman", "Support"]
+    for role in roles:
+        heroes = [h for h, v in HEROES.items() if role in v["role"]]
 
-def save_question(q):
-    recent_questions.append(q)
-    if len(recent_questions) > 30:
-        recent_questions.pop(0)
+        letters = set([h[0].upper() for h in heroes])
 
-
-def get_valid_letter(pool):
-    valid = {}
-
-    for name in pool:
-        first = name[0].upper()
-        valid[first] = valid.get(first, 0) + 1
-
-    valid_letters = [k for k, v in valid.items() if v >= 2]
-
-    if not valid_letters:
-        return random.choice(LETTERS)
-
-    return random.choice(valid_letters)
-
-
-def generate_question():
-    global question_counter
-
-    # 🔥 tiap 20 soal → 1 spell
-    if question_counter >= 20:
-        question_counter = 0
-        return generate_spell_question()
-
-    for _ in range(15):
-
-        q_type = random.choice([
-            "hero_role",
-            "hero_lane",
-            "item_type"
-        ])
-
-        # ================= HERO ROLE =================
-        if q_type == "hero_role":
-            role = random.choice(["Assassin", "Fighter", "Mage", "Tank", "Marksman", "Support"])
-
-            pool = [h for h, v in HEROES.items() if role in v["role"]]
-            letter = get_valid_letter(pool)
-
-            answers = [h for h in pool if h.upper().startswith(letter)]
+        for letter in letters:
+            answers = [h for h in heroes if h.upper().startswith(letter)]
 
             if len(answers) >= 2:
-                q_text = f"Sebutkan hero {role.upper()} huruf {letter}"
-
-                if is_duplicate(q_text):
-                    continue
-
-                save_question(q_text)
-                question_counter += 1
-
-                return {
-                    "question": q_text,
+                pool.append({
+                    "question": f"Sebutkan hero {role.upper()} huruf {letter}",
                     "answers": list(set(answers))
-                }
+                })
 
-        # ================= HERO LANE =================
-        if q_type == "hero_lane":
-            lane = random.choice(["EXP", "Jungle", "Mid", "Gold", "Roam"])
+    # ================= HERO LANE =================
+    lanes = ["EXP", "Jungle", "Mid", "Gold", "Roam"]
+    for lane in lanes:
+        heroes = [h for h, v in HEROES.items() if lane in v["lane"]]
 
-            pool = [h for h, v in HEROES.items() if lane in v["lane"]]
-            letter = get_valid_letter(pool)
+        letters = set([h[0].upper() for h in heroes])
 
-            answers = [h for h in pool if h.upper().startswith(letter)]
+        for letter in letters:
+            answers = [h for h in heroes if h.upper().startswith(letter)]
 
             if len(answers) >= 2:
-                q_text = f"Sebutkan hero {lane.upper()} huruf {letter}"
-
-                if is_duplicate(q_text):
-                    continue
-
-                save_question(q_text)
-                question_counter += 1
-
-                return {
-                    "question": q_text,
+                pool.append({
+                    "question": f"Sebutkan hero {lane.upper()} huruf {letter}",
                     "answers": list(set(answers))
-                }
+                })
 
-        # ================= ITEM =================
-        if q_type == "item_type":
-            tipe = random.choice(["attack", "magic", "defense"])
+    # ================= ITEM =================
+    types = ["attack", "magic", "defense"]
+    for tipe in types:
+        items = [i for i, v in ITEMS.items() if v["type"] == tipe]
 
-            pool = [i for i, v in ITEMS.items() if v["type"] == tipe]
-            letter = get_valid_letter(pool)
+        letters = set([i[0].upper() for i in items])
 
-            answers = [i for i in pool if i.upper().startswith(letter)]
+        for letter in letters:
+            answers = [i for i in items if i.upper().startswith(letter)]
 
             if len(answers) >= 2:
-                q_text = f"Sebutkan item {tipe.upper()} huruf {letter}"
-
-                if is_duplicate(q_text):
-                    continue
-
-                save_question(q_text)
-                question_counter += 1
-
-                return {
-                    "question": q_text,
+                pool.append({
+                    "question": f"Sebutkan item {tipe.upper()} huruf {letter}",
                     "answers": list(set(answers))
-                }
+                })
 
-    # fallback aman
-    question_counter += 1
-    return {
-        "question": "Sebutkan hero MLBB",
-        "answers": list(HEROES.keys())
-    }
-
-
-# ================= SPELL =================
-
-def generate_spell_question():
-
-    for _ in range(10):
-        letter = get_valid_letter(SPELLS)
-
+    # ================= SPELL =================
+    letters = set([s[0].upper() for s in SPELLS])
+    for letter in letters:
         answers = [s for s in SPELLS if s.upper().startswith(letter)]
 
         if len(answers) >= 1:
-            q_text = f"Sebutkan battle spell huruf {letter}"
-
-            if is_duplicate(q_text):
-                continue
-
-            save_question(q_text)
-
-            return {
-                "question": q_text,
+            pool.append({
+                "question": f"Sebutkan battle spell huruf {letter}",
                 "answers": list(set(answers))
-            }
+            })
 
-    return {
-        "question": "Sebutkan battle spell MLBB",
-        "answers": SPELLS
-    }
+    return pool
+
+
+def reset_pool():
+    global question_pool, used_questions
+    question_pool = build_question_pool()
+    random.shuffle(question_pool)
+    used_questions = []
+
+
+def generate_question():
+    global question_pool, used_questions
+
+    if not question_pool:
+        reset_pool()
+
+    q = question_pool.pop()
+    used_questions.append(q)
+
+    return q
