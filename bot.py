@@ -19,7 +19,7 @@ def normalize(text):
 # ================= START ==================
 
 def start(update, context):
-    chat = update.effective_chat  # ✅ FIX penting
+    chat = update.effective_chat
 
     if chat.type == "private":
         keyboard = [
@@ -92,8 +92,10 @@ def send_question(update, context):
     user = user_data[chat_id]
 
     q = generate_question()
+
+    # 🔥 FIX: hindari loop infinite
     if not q:
-        return send_question(update, context)
+        return
 
     user["current_q"] = q
     user["answered"] = False
@@ -185,10 +187,7 @@ def answer(update, context):
     if len(user["answered_by"]) == len(q["answers"]):
         user["answered"] = True
 
-        # tampilkan notif selesai dulu
         refresh_question(context, chat_id)
-
-        # lanjut soal baru
         send_question(update, context)
 
 
@@ -222,6 +221,7 @@ def nyerah(update, context):
 
     q = user["current_q"]
 
+    # 🔥 buka 1 jawaban
     for idx, ans in enumerate(q["answers"]):
         if idx not in user["answered_by"]:
             user["answered_by"][idx] = "🤖 bot"
@@ -229,6 +229,13 @@ def nyerah(update, context):
             break
 
     refresh_question(context, chat_id)
+
+    # 🔥 FIX: kalau sudah habis → lanjut
+    if len(user["answered_by"]) == len(q["answers"]):
+        user["answered"] = True
+
+        refresh_question(context, chat_id)
+        send_question(update, context)
 
 
 # ================= LEADERBOARD ==================
