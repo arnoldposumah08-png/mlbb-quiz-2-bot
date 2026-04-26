@@ -262,14 +262,16 @@ def stats(update, context):
     user_id = str(update.effective_user.id)
 
     score = database.get_user_score(user_id) or 0
+    rank_name = get_rank(score)
+    global_rank = database.get_global_rank(user_id)
 
-    text = (
-        "<b>📊 STATS</b>\n\n"
-        f"🔥 MMR: {score}\n"
-        f"🏆 RANK: {get_rank(score)}"
+    update.message.reply_text(
+        f"📊 Stats\n\n"
+        f"🔥MMR kamu sekarang 👉 {score}\n"
+        f"🏆RANK : {rank_name}\n"
+        f"🌍<b>GLOBAL RANK : #{global_rank if global_rank else '-'}</b>\n",
+        parse_mode="HTML"
     )
-
-    update.message.reply_text(text, parse_mode="HTML")
 
 
 # ================= MAIN ==================
