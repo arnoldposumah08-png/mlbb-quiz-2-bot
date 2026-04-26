@@ -1,48 +1,73 @@
-def answer(update, context):
-    if not group_only(update):
-        return
+import random
+from heroes import HEROES
+from items import ITEMS
+from spells import SPELLS
 
-    chat_id = str(update.effective_chat.id)
-    user_id = str(update.effective_user.id)
-    name = update.effective_user.first_name or "User"
 
-    if chat_id not in user_data:
-        return
+def generate_question():
 
-    user = user_data[chat_id]
+    q_type = random.choice([
+        "hero_role",
+        "hero_lane",
+        "hero_region",
+        "item_type",
+        "spell"
+    ])
 
-    if not user.get("active") or user.get("answered"):
-        return
+    # ================= HERO ROLE =================
+    if q_type == "hero_role":
+        role = random.choice(["Assassin", "Fighter", "Mage", "Tank", "Marksman", "Support"])
 
-    msg = update.message.text.lower()
-    inputs = [x.strip() for x in msg.replace("\n", ",").split(",") if x.strip()]
+        pool = [h for h, v in HEROES.items() if role in v["role"]]
 
-    q = user["current_q"]
-    answers = [a.lower() for a in q["answers"]]
+        if pool:
+            return {
+                "question": f"Sebutkan semua hero {role.upper()}",
+                "answers": pool
+            }
 
-    updated = False
+    # ================= HERO LANE =================
+    if q_type == "hero_lane":
+        lane = random.choice(["EXP", "Jungle", "Mid", "Gold", "Roam"])
 
-    for inp in inputs:
-        if inp in answers:
+        pool = [h for h, v in HEROES.items() if lane in v["lane"]]
 
-            idx = answers.index(inp)
+        if pool:
+            return {
+                "question": f"Sebutkan semua hero {lane.upper()} lane",
+                "answers": pool
+            }
 
-            if idx in user["answered_by"]:
-                continue
+    # ================= HERO REGION =================
+    if q_type == "hero_region":
+        regions = list(set(v["region"] for v in HEROES.values()))
+        region = random.choice(regions)
 
-            user["answered_by"][idx] = name
-            updated = True
+        pool = [h for h, v in HEROES.items() if v["region"] == region]
 
-            try:
-                database.add_global_score(user_id, name, 25)
-                database.add_group_score(chat_id, user_id, name, 25)
-            except:
-                pass
+        if pool:
+            return {
+                "question": f"Sebutkan semua hero dari region {region}",
+                "answers": pool
+            }
 
-    if updated:
-        refresh_question(context, chat_id)
+    # ================= ITEM =================
+    if q_type == "item_type":
+        tipe = random.choice(["attack", "magic", "defense"])
 
-    if len(user["answered_by"]) == len(answers):
-        user["answered"] = True
-        context.bot.send_message(chat_id=int(chat_id), text="➡️ Soal baru...")
-        send_question(update, context)
+        pool = [i for i, v in ITEMS.items() if v["type"] == tipe]
+
+        if pool:
+            return {
+                "question": f"Sebutkan semua item {tipe.upper()}",
+                "answers": pool
+            }
+
+    # ================= SPELL =================
+    if q_type == "spell":
+        return {
+            "question": "Sebutkan semua battle spell MLBB",
+            "answers": SPELLS
+        }
+
+    return generate_question()
