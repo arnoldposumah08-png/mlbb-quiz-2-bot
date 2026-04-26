@@ -61,9 +61,9 @@ def build_question_text(user):
 
     for i in range(total):
         if i in user["answered_by"]:
-            hero = q["answers"][i]
+            ans = q["answers"][i]
             player = user["answered_by"][i]
-            text += f"{i+1}. {hero} (+25) [{player}]\n"
+            text += f"{i+1}. {ans} (+25) [{player}]\n"
         else:
             text += f"{i+1}. ______\n"
 
@@ -145,10 +145,8 @@ def answer(update, context):
         return
 
     msg = normalize(update.message.text)
-
     q = user["current_q"]
 
-    # anti duplicate mapping
     answer_map = {normalize(a): i for i, a in enumerate(q["answers"])}
 
     inputs = [x.strip() for x in msg.replace("\n", ",").split(",") if x.strip()]
@@ -178,11 +176,10 @@ def answer(update, context):
     if updated:
         refresh_question(context, chat_id)
 
-    # ✅ AUTO NEXT FIX
+    # selesai semua
     if len(user["answered_by"]) == len(q["answers"]):
         user["answered"] = True
 
-        # tampilkan notif selesai dulu
         refresh_question(context, chat_id)
 
         # lanjut soal baru
@@ -208,12 +205,13 @@ def nyerah(update, context):
     user_id = str(update.effective_user.id)
 
     if chat_id not in user_data:
+        update.message.reply_text("⚠️ Game belum dimulai!")
         return
 
     user = user_data[chat_id]
 
     if user_id in user["hint_used"]:
-        update.message.reply_text("❌ Sudah pakai bantuan!")
+        update.message.reply_text("❌ Bantuan hanya sekali per user")
         return
 
     q = user["current_q"]
@@ -227,6 +225,55 @@ def nyerah(update, context):
     refresh_question(context, chat_id)
 
 
+# ================= LEADERBOARD ==================
+
+def leaderboard(update, context):
+    data = database.get_global_leaderboard()
+
+    if not data:
+        update.message.reply_text("Belum ada data.")
+        return
+
+    text = "🏆 GLOBAL LEADERBOARD\n\n"
+
+    for i, (name, score) in enumerate(data, 1):
+        text += f"{i}. {name} — {get_rank(score)} ({score})\n"
+
+    update.message.reply_text(text)
+
+
+# ================= GROUP TOP ==================
+
+def topgrup(update, context):
+    chat_id = str(update.effective_chat.id)
+    data = database.get_group_leaderboard(chat_id)
+
+    if not data:
+        update.message.reply_text("Belum ada data grup.")
+        return
+
+    text = "🏆 LEADERBOARD GRUP\n\n"
+
+    for i, (name, score) in enumerate(data, 1):
+        text += f"{i}. {name} — {get_rank(score)} ({score})\n"
+
+    update.message.reply_text(text)
+
+
+# ================= STATS ==================
+
+def stats(update, context):
+    user_id = str(update.effective_user.id)
+
+    score = database.get_user_score(user_id) or 0
+
+    update.message.reply_text(
+        f"📊 STATS\n\n"
+        f"🔥 MMR: {score}\n"
+        f"🏆 RANK: {get_rank(score)}"
+    )
+
+
 # ================= MAIN ==================
 
 def main():
@@ -238,6 +285,9 @@ def main():
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("next", next_q))
     dp.add_handler(CommandHandler("nyerah", nyerah))
+    dp.add_handler(CommandHandler("leaderboard", leaderboard))
+    dp.add_handler(CommandHandler("topgrup", topgrup))
+    dp.add_handler(CommandHandler("stats", stats))
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, answer))
 
     print("BOT MLBB RUNNING...")
