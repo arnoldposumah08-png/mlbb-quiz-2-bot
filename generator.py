@@ -17,74 +17,63 @@ def generate_question():
     # ================= HERO ROLE =================
     if q_type == "hero_role":
         role = random.choice(["Assassin", "Fighter", "Mage", "Tank", "Marksman", "Support"])
-        pool = [h for h, v in HEROES.items() if role in v["role"]]
 
-        limit = min(len(pool), random.randint(5, 10))
-        answers = random.sample(pool, limit)
+        full_pool = [h for h, v in HEROES.items() if role in v["role"]]
+
+        show_pool = random.sample(full_pool, min(len(full_pool), random.randint(5, 10)))
 
         return {
-            "question": f"Sebutkan {limit} hero {role.upper()}",
-            "answers": answers,
-            "mode": "role",
-            "key": role
+            "question": f"Sebutkan hero {role.upper()}",
+            "answers": full_pool,      # 🔥 JAWABAN BENAR = FULL KATEGORI
+            "display": show_pool       # 🔥 YANG DITAMPILKAN = 5–10
         }
 
     # ================= HERO LANE =================
     if q_type == "hero_lane":
         lane = random.choice(["EXP", "Jungle", "Mid", "Gold", "Roam"])
-        pool = [h for h, v in HEROES.items() if lane in v["lane"]]
 
-        limit = min(len(pool), random.randint(5, 10))
-        answers = random.sample(pool, limit)
+        full_pool = [h for h, v in HEROES.items() if lane in v["lane"]]
+        show_pool = random.sample(full_pool, min(len(full_pool), random.randint(5, 10)))
 
         return {
-            "question": f"Sebutkan {limit} hero {lane.upper()} lane",
-            "answers": answers,
-            "mode": "lane",
-            "key": lane
+            "question": f"Sebutkan hero {lane.upper()} lane",
+            "answers": full_pool,
+            "display": show_pool
         }
 
     # ================= HERO REGION =================
     if q_type == "hero_region":
         regions = list(set(v["region"] for v in HEROES.values()))
         region = random.choice(regions)
-        pool = [h for h, v in HEROES.items() if v["region"] == region]
 
-        limit = min(len(pool), random.randint(5, 10))
-        answers = random.sample(pool, limit)
+        full_pool = [h for h, v in HEROES.items() if v["region"] == region]
+        show_pool = random.sample(full_pool, min(len(full_pool), random.randint(5, 10)))
 
         return {
-            "question": f"Sebutkan {limit} hero dari region {region}",
-            "answers": answers,
-            "mode": "region",
-            "key": region
+            "question": f"Sebutkan hero dari region {region}",
+            "answers": full_pool,
+            "display": show_pool
         }
 
     # ================= ITEM =================
     if q_type == "item_type":
         tipe = random.choice(["attack", "magic", "defense"])
-        pool = [i for i, v in ITEMS.items() if v["type"] == tipe]
 
-        limit = min(len(pool), random.randint(5, 10))
-        answers = random.sample(pool, limit)
+        full_pool = [i for i, v in ITEMS.items() if v["type"] == tipe]
+        show_pool = random.sample(full_pool, min(len(full_pool), random.randint(5, 10)))
 
         return {
-            "question": f"Sebutkan {limit} item {tipe.upper()}",
-            "answers": answers,
-            "mode": "item",
-            "key": tipe
+            "question": f"Sebutkan item {tipe.upper()}",
+            "answers": full_pool,
+            "display": show_pool
         }
 
     # ================= SPELL =================
     if q_type == "spell":
-        limit = min(len(SPELLS), random.randint(5, 10))
-        answers = random.sample(SPELLS, limit)
-
         return {
-            "question": f"Sebutkan {limit} battle spell MLBB",
-            "answers": answers,
-            "mode": "spell",
-            "key": "spell"
+            "question": "Sebutkan battle spell MLBB",
+            "answers": SPELLS,
+            "display": random.sample(SPELLS, min(len(SPELLS), 10))
         }
 
     return generate_question()
