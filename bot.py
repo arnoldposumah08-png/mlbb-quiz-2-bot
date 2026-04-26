@@ -24,7 +24,8 @@ def start(update, context):
         ]
 
         update.message.reply_text(
-            "🎯 QUIZ MLBB 2\n\nTambahkan bot ini ke grup untuk mulai bermain!",
+            "🎯 QUIZ MLBB 2\n\n"
+            "Tambahkan bot ini ke grup untuk mulai bermain!",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
@@ -50,14 +51,15 @@ def start(update, context):
 
 def build_question_text(user):
     q = user["current_q"]
-
-    # aman kalau display tidak ada
-    display = q.get("display") or q["answers"][:10]
+    answers = q["answers"]
 
     text = f"❓ {q['question']}\n\n"
 
-    for i, a in enumerate(display):
-        text += f"{i+1}. {a}\n"
+    for i, a in enumerate(answers):
+        if i in user["answered_by"]:
+            text += f"{i+1}. {a} (+25) [{user['answered_by'][i]}]\n"
+        else:
+            text += f"{i+1}. ______\n"
 
     if not user["answered"]:
         text += "\n💡 /next untuk skip\n💡 /nyerah untuk bantuan"
@@ -114,7 +116,7 @@ def refresh_question(context, chat_id):
     except Exception as e:
         print("REFRESH ERROR:", e)
 
-# ================= ANSWER ==================
+# ================= ANSWER (FIX MULTI ANSWER) ==================
 
 def answer(update, context):
     if not group_only(update):
@@ -133,32 +135,29 @@ def answer(update, context):
         return
 
     msg = update.message.text.lower().strip()
-
-    # support multi answer
-    inputs = [x.strip() for x in msg.replace("\n", ",").split(",") if x.strip()]
-
     q = user["current_q"]
 
-    # NORMALIZE ANSWERS
-    answers = [a.lower() for a in q["answers"]]
+    # 🔥 SUPPORT MULTI ANSWER
+    inputs = [x.strip() for x in msg.replace("\n", ",").split(",") if x.strip()]
 
     updated = False
 
     for inp in inputs:
-        if inp in answers:
-            idx = answers.index(inp)
+        for idx, ans in enumerate(q["answers"]):
 
-            if idx in user["answered_by"]:
-                continue
+            if inp == ans.lower():
 
-            user["answered_by"][idx] = name
-            updated = True
+                if idx in user["answered_by"]:
+                    continue
 
-            try:
-                database.add_global_score(user_id, name, 25)
-                database.add_group_score(chat_id, user_id, name, 25)
-            except:
-                pass
+                user["answered_by"][idx] = name
+                updated = True
+
+                try:
+                    database.add_global_score(user_id, name, 25)
+                    database.add_group_score(chat_id, user_id, name, 25)
+                except:
+                    pass
 
     if updated:
         refresh_question(context, chat_id)
