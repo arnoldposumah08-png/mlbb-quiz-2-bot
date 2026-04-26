@@ -51,15 +51,14 @@ def start(update, context):
 
 def build_question_text(user):
     q = user["current_q"]
-    answers = q["answers"]
+
+    # pakai display kalau ada (biar tidak spam full list)
+    display = q.get("display", q["answers"])
 
     text = f"❓ {q['question']}\n\n"
 
-    for i, a in enumerate(answers):
-        if i in user["answered_by"]:
-            text += f"{i+1}. {a} (+25) [{user['answered_by'][i]}]\n"
-        else:
-            text += f"{i+1}. ______\n"
+    for i, a in enumerate(display):
+        text += f"{i+1}. {a}\n"
 
     if not user["answered"]:
         text += "\n💡 /next untuk skip\n💡 /nyerah untuk bantuan"
@@ -116,7 +115,7 @@ def refresh_question(context, chat_id):
     except Exception as e:
         print("REFRESH ERROR:", e)
 
-# ================= ANSWER (FIX MULTI ANSWER) ==================
+# ================= ANSWER ==================
 
 def answer(update, context):
     if not group_only(update):
@@ -135,34 +134,35 @@ def answer(update, context):
         return
 
     msg = update.message.text.lower().strip()
-    q = user["current_q"]
 
-    # 🔥 SUPPORT MULTI ANSWER
+    # support multi answer
     inputs = [x.strip() for x in msg.replace("\n", ",").split(",") if x.strip()]
+
+    q = user["current_q"]
+    answers = [a.lower() for a in q["answers"]]
 
     updated = False
 
     for inp in inputs:
-        for idx, ans in enumerate(q["answers"]):
+        if inp in answers:
+            idx = answers.index(inp)
 
-            if inp == ans.lower():
+            if idx in user["answered_by"]:
+                continue
 
-                if idx in user["answered_by"]:
-                    continue
+            user["answered_by"][idx] = name
+            updated = True
 
-                user["answered_by"][idx] = name
-                updated = True
-
-                try:
-                    database.add_global_score(user_id, name, 25)
-                    database.add_group_score(chat_id, user_id, name, 25)
-                except:
-                    pass
+            try:
+                database.add_global_score(user_id, name, 25)
+                database.add_group_score(chat_id, user_id, name, 25)
+            except:
+                pass
 
     if updated:
         refresh_question(context, chat_id)
 
-    if len(user["answered_by"]) == len(q["answers"]):
+    if len(user["answered_by"]) == len(answers):
         user["answered"] = True
         context.bot.send_message(chat_id=int(chat_id), text="➡️ Soal baru...")
         send_question(update, context)
