@@ -4,6 +4,15 @@ from items import ITEMS
 from spells import SPELLS
 
 
+def safe_sample(pool, min_show=5, max_show=10):
+    """biar aman kalau data kecil"""
+    if not pool:
+        return []
+
+    size = min(len(pool), random.randint(min_show, max_show))
+    return random.sample(pool, size)
+
+
 def generate_question():
 
     q_type = random.choice([
@@ -20,12 +29,13 @@ def generate_question():
 
         full_pool = [h for h, v in HEROES.items() if role in v["role"]]
 
-        show_pool = random.sample(full_pool, min(len(full_pool), random.randint(5, 10)))
+        if not full_pool:
+            return generate_question()
 
         return {
             "question": f"Sebutkan hero {role.upper()}",
-            "answers": full_pool,      # 🔥 JAWABAN BENAR = FULL KATEGORI
-            "display": show_pool       # 🔥 YANG DITAMPILKAN = 5–10
+            "answers": full_pool,
+            "display": safe_sample(full_pool)
         }
 
     # ================= HERO LANE =================
@@ -33,12 +43,14 @@ def generate_question():
         lane = random.choice(["EXP", "Jungle", "Mid", "Gold", "Roam"])
 
         full_pool = [h for h, v in HEROES.items() if lane in v["lane"]]
-        show_pool = random.sample(full_pool, min(len(full_pool), random.randint(5, 10)))
+
+        if not full_pool:
+            return generate_question()
 
         return {
             "question": f"Sebutkan hero {lane.upper()} lane",
             "answers": full_pool,
-            "display": show_pool
+            "display": safe_sample(full_pool)
         }
 
     # ================= HERO REGION =================
@@ -47,12 +59,14 @@ def generate_question():
         region = random.choice(regions)
 
         full_pool = [h for h, v in HEROES.items() if v["region"] == region]
-        show_pool = random.sample(full_pool, min(len(full_pool), random.randint(5, 10)))
+
+        if not full_pool:
+            return generate_question()
 
         return {
             "question": f"Sebutkan hero dari region {region}",
             "answers": full_pool,
-            "display": show_pool
+            "display": safe_sample(full_pool)
         }
 
     # ================= ITEM =================
@@ -60,20 +74,25 @@ def generate_question():
         tipe = random.choice(["attack", "magic", "defense"])
 
         full_pool = [i for i, v in ITEMS.items() if v["type"] == tipe]
-        show_pool = random.sample(full_pool, min(len(full_pool), random.randint(5, 10)))
+
+        if not full_pool:
+            return generate_question()
 
         return {
             "question": f"Sebutkan item {tipe.upper()}",
             "answers": full_pool,
-            "display": show_pool
+            "display": safe_sample(full_pool)
         }
 
     # ================= SPELL =================
     if q_type == "spell":
+        if not SPELLS:
+            return generate_question()
+
         return {
             "question": "Sebutkan battle spell MLBB",
             "answers": SPELLS,
-            "display": random.sample(SPELLS, min(len(SPELLS), 10))
+            "display": safe_sample(SPELLS)
         }
 
     return generate_question()
