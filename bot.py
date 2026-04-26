@@ -176,13 +176,9 @@ def answer(update, context):
     if updated:
         refresh_question(context, chat_id)
 
-    # selesai semua
     if len(user["answered_by"]) == len(q["answers"]):
         user["answered"] = True
-
         refresh_question(context, chat_id)
-
-        # lanjut soal baru
         send_question(update, context)
 
 
@@ -234,12 +230,12 @@ def leaderboard(update, context):
         update.message.reply_text("Belum ada data.")
         return
 
-    text = "🏆 GLOBAL LEADERBOARD\n\n"
+    text = "<b>🏆 GLOBAL LEADERBOARD</b>\n\n"
 
     for i, (name, score) in enumerate(data, 1):
         text += f"{i}. {name} — {get_rank(score)} ({score})\n"
 
-    update.message.reply_text(text)
+    update.message.reply_text(text, parse_mode="HTML")
 
 
 # ================= GROUP TOP ==================
@@ -252,12 +248,12 @@ def topgrup(update, context):
         update.message.reply_text("Belum ada data grup.")
         return
 
-    text = "🏆 LEADERBOARD GRUP\n\n"
+    text = "<b>🏆 LEADERBOARD GRUP</b>\n\n"
 
     for i, (name, score) in enumerate(data, 1):
         text += f"{i}. {name} — {get_rank(score)} ({score})\n"
 
-    update.message.reply_text(text)
+    update.message.reply_text(text, parse_mode="HTML")
 
 
 # ================= STATS ==================
@@ -267,11 +263,13 @@ def stats(update, context):
 
     score = database.get_user_score(user_id) or 0
 
-    update.message.reply_text(
-        f"📊 STATS\n\n"
+    text = (
+        "<b>📊 STATS</b>\n\n"
         f"🔥 MMR: {score}\n"
         f"🏆 RANK: {get_rank(score)}"
     )
+
+    update.message.reply_text(text, parse_mode="HTML")
 
 
 # ================= MAIN ==================
