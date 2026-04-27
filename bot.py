@@ -19,20 +19,12 @@ def normalize(text):
 # ================= START ==================
 
 def start(update, context):
-    if not update.message or not update.message.text:
-        return
-
-    # 🔥 FIX: support /start@botname
-    cmd = update.message.text.split()[0].split("@")[0]
-    if cmd != "/start":
-        return
-
     chat = update.effective_chat
 
     if chat.type == "private":
         keyboard = [
             [InlineKeyboardButton("Dev", url="https://t.me/yasanyamagurai")],
-            [InlineKeyboardButton("Tambahkan ke GRUP", url="https://t.me/quizmlbb_bot?startgroup=true")]
+            [InlineKeyboardButton("Tambahkan ke GRUP", url="https://t.me/quizmlbb2_bot?startgroup=true")]
         ]
 
         update.message.reply_text(
@@ -101,7 +93,7 @@ def send_question(update, context):
 
     q = generate_question()
 
-    if not q:
+    if not q or not q.get("answers"):
         context.bot.send_message(chat_id=int(chat_id), text="❌ Soal belum tersedia!")
         return
 
@@ -305,10 +297,7 @@ def main():
     updater = Updater(TOKEN, use_context=True)
     dp = updater.dispatcher
 
-    # 🔥 FIX START COMMAND
     dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(Filters.text & Filters.regex(r"^/start"), start))
-
     dp.add_handler(CommandHandler("next", next_q))
     dp.add_handler(CommandHandler("nyerah", nyerah))
     dp.add_handler(CommandHandler("leaderboard", leaderboard))
@@ -316,9 +305,9 @@ def main():
     dp.add_handler(CommandHandler("stats", stats))
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, answer))
 
-    print("BOT MLBB RUNNING...")
+    print("BOT MLBB2 RUNNING...")
 
-    updater.start_polling()
+    updater.start_polling(drop_pending_updates=True)
     updater.idle()
 
 
