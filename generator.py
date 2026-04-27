@@ -126,6 +126,16 @@ def generate_question():
         }
 
     return q
+    
+    def clear_questions():
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM questions")
+
+    conn.commit()
+    cur.close()
+    conn.close()
 
 
 # ================= OPTIONAL MANUAL RUN =================
