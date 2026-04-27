@@ -19,6 +19,14 @@ def normalize(text):
 # ================= START ==================
 
 def start(update, context):
+    if not update.message or not update.message.text:
+        return
+
+    # 🔥 FIX: support /start@botname
+    cmd = update.message.text.split()[0].split("@")[0]
+    if cmd != "/start":
+        return
+
     chat = update.effective_chat
 
     if chat.type == "private":
@@ -93,8 +101,8 @@ def send_question(update, context):
 
     q = generate_question()
 
-    # 🔥 FIX: hindari loop infinite
     if not q:
+        context.bot.send_message(chat_id=int(chat_id), text="❌ Soal belum tersedia!")
         return
 
     user["current_q"] = q
@@ -137,6 +145,9 @@ def refresh_question(context, chat_id):
 
 def answer(update, context):
     if not group_only(update):
+        return
+
+    if not update.message or not update.message.text:
         return
 
     chat_id = str(update.effective_chat.id)
@@ -183,10 +194,8 @@ def answer(update, context):
     if updated:
         refresh_question(context, chat_id)
 
-    # ✅ selesai semua jawaban
     if len(user["answered_by"]) == len(q["answers"]):
         user["answered"] = True
-
         refresh_question(context, chat_id)
         send_question(update, context)
 
@@ -221,7 +230,6 @@ def nyerah(update, context):
 
     q = user["current_q"]
 
-    # 🔥 buka 1 jawaban
     for idx, ans in enumerate(q["answers"]):
         if idx not in user["answered_by"]:
             user["answered_by"][idx] = "🤖 bot"
@@ -230,10 +238,8 @@ def nyerah(update, context):
 
     refresh_question(context, chat_id)
 
-    # 🔥 FIX: kalau sudah habis → lanjut
     if len(user["answered_by"]) == len(q["answers"]):
         user["answered"] = True
-
         refresh_question(context, chat_id)
         send_question(update, context)
 
@@ -299,7 +305,10 @@ def main():
     updater = Updater(TOKEN, use_context=True)
     dp = updater.dispatcher
 
+    # 🔥 FIX START COMMAND
     dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(MessageHandler(Filters.text & Filters.regex(r"^/start"), start))
+
     dp.add_handler(CommandHandler("next", next_q))
     dp.add_handler(CommandHandler("nyerah", nyerah))
     dp.add_handler(CommandHandler("leaderboard", leaderboard))
