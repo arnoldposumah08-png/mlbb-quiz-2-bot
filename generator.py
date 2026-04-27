@@ -1,11 +1,10 @@
 import random
+import database
 from heroes import HEROES
 from items import ITEMS
 from spells import SPELLS
 
-question_pool = []
-used_questions = []
-
+# ================= BUILD QUESTIONS =================
 
 def build_question_pool():
     pool = []
@@ -22,6 +21,7 @@ def build_question_pool():
 
             if len(answers) >= 2:
                 pool.append({
+                    "category": "hero",
                     "question": f"Sebutkan hero {role.upper()} huruf {letter}",
                     "answers": list(set(answers))
                 })
@@ -38,6 +38,7 @@ def build_question_pool():
 
             if len(answers) >= 2:
                 pool.append({
+                    "category": "hero",
                     "question": f"Sebutkan hero {lane.upper()} huruf {letter}",
                     "answers": list(set(answers))
                 })
@@ -54,6 +55,7 @@ def build_question_pool():
 
             if len(answers) >= 2:
                 pool.append({
+                    "category": "item",
                     "question": f"Sebutkan item {tipe.upper()} huruf {letter}",
                     "answers": list(set(answers))
                 })
@@ -65,6 +67,7 @@ def build_question_pool():
 
         if len(answers) >= 1:
             pool.append({
+                "category": "spell",
                 "question": f"Sebutkan battle spell huruf {letter}",
                 "answers": list(set(answers))
             })
@@ -72,20 +75,24 @@ def build_question_pool():
     return pool
 
 
-def reset_pool():
-    global question_pool, used_questions
-    question_pool = build_question_pool()
-    random.shuffle(question_pool)
-    used_questions = []
+# ================= INSERT KE DATABASE =================
+
+def insert_all_to_db():
+    database.init_db()
+
+    pool = build_question_pool()
+
+    for q in pool:
+        database.insert_question(
+            q["category"],
+            q["question"],
+            q["answers"]
+        )
+
+    print(f"✅ {len(pool)} soal berhasil diproses (tanpa duplikat)")
 
 
-def generate_question():
-    global question_pool, used_questions
+# ================= RUN =================
 
-    if not question_pool:
-        reset_pool()
-
-    q = question_pool.pop()
-    used_questions.append(q)
-
-    return q
+if __name__ == "__main__":
+    insert_all_to_db()
