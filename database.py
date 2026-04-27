@@ -1,5 +1,6 @@
 import psycopg2
 import os
+import json
 
 # ================= CONFIG =================
 
@@ -20,6 +21,7 @@ def init_db():
     cur = conn.cursor()
 
     try:
+        # GLOBAL SCORE
         cur.execute("""
         CREATE TABLE IF NOT EXISTS global_scores (
             user_id TEXT PRIMARY KEY,
@@ -28,6 +30,7 @@ def init_db():
         )
         """)
 
+        # GROUP SCORE
         cur.execute("""
         CREATE TABLE IF NOT EXISTS group_scores (
             chat_id TEXT,
@@ -35,6 +38,16 @@ def init_db():
             name TEXT,
             score INT,
             PRIMARY KEY (chat_id, user_id)
+        )
+        """)
+
+        # 🔥 QUESTIONS (SEMUA TIPE)
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS questions (
+            id SERIAL PRIMARY KEY,
+            category TEXT,
+            question TEXT UNIQUE,
+            answers TEXT
         )
         """)
 
@@ -142,6 +155,49 @@ def get_group_leaderboard(chat_id, limit=20):
         LIMIT %s
         """, (chat_id, limit))
         return cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
+
+# ================= QUESTIONS =================
+
+def insert_question(category, question, answers):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+        INSERT INTO questions (category, question, answers)
+        VALUES (%s, %s, %s)
+        ON CONFLICT (question) DO NOTHING
+        """, (category, question, json.dumps(answers)))
+
+        conn.commit()
+    finally:
+        cur.close()
+        conn.close()
+
+def get_random_question():
+    conn = get_conn()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+        SELECT category, question, answers
+        FROM questions
+        ORDER BY RANDOM()
+        LIMIT 1
+        """)
+
+        row = cur.fetchone()
+
+        if row:
+            return {
+                "category": row[0],
+                "question": row[1],
+                "answers": json.loads(row[2])
+            }
+        return None
     finally:
         cur.close()
         conn.close()
