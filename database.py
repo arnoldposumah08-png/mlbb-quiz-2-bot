@@ -1,158 +1,219 @@
-import random
-import database
-from heroes import HEROES
-from items import ITEMS
-from spells import SPELLS
+import psycopg2
+import os
+import json
 
-# ================= BUILD QUESTIONS =================
+# ================= CONFIG =================
 
-def build_question_pool():
-    pool = []
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-    # ================= HERO ROLE =================
-    roles = ["Assassin", "Fighter", "Mage", "Tank", "Marksman", "Support"]
-    for role in roles:
-        heroes = [h for h, v in HEROES.items() if role in v["role"]]
+if not DATABASE_URL:
+    raise Exception("DATABASE_URL tidak ditemukan! Pastikan sudah set di Railway Variables")
 
-        letters = set([h[0].upper() for h in heroes])
+# ================= CONNECT =================
 
-        for letter in letters:
-            answers = [h for h in heroes if h.upper().startswith(letter)]
+def get_conn():
+    return psycopg2.connect(DATABASE_URL)
 
-            if len(answers) >= 2:
-                pool.append({
-                    "category": "hero",
-                    "question": f"Sebutkan hero {role.upper()} huruf {letter}",
-                    "answers": sorted(list(set(answers)))
-                })
+# ================= INIT =================
 
-    # ================= HERO LANE =================
-    lanes = ["EXP", "Jungle", "Mid", "Gold", "Roam"]
-    for lane in lanes:
-        heroes = [h for h, v in HEROES.items() if lane in v["lane"]]
+def init_db():
+    conn = get_conn()
+    cur = conn.cursor()
 
-        letters = set([h[0].upper() for h in heroes])
+    try:
+        # ================= SCORES =================
 
-        for letter in letters:
-            answers = [h for h in heroes if h.upper().startswith(letter)]
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS global_scores (
+            user_id TEXT PRIMARY KEY,
+            name TEXT,
+            score INT
+        )
+        """)
 
-            if len(answers) >= 2:
-                pool.append({
-                    "category": "hero",
-                    "question": f"Sebutkan hero {lane.upper()} huruf {letter}",
-                    "answers": sorted(list(set(answers)))
-                })
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS group_scores (
+            chat_id TEXT,
+            user_id TEXT,
+            name TEXT,
+            score INT,
+            PRIMARY KEY (chat_id, user_id)
+        )
+        """)
 
-    # ================= ITEM =================
-    types = ["attack", "magic", "defense"]
-    for tipe in types:
-        items = [i for i, v in ITEMS.items() if v["type"] == tipe]
+        # ================= QUESTIONS =================
 
-        letters = set([i[0].upper() for i in items])
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS questions (
+            id SERIAL PRIMARY KEY,
+            category TEXT,
+            question TEXT UNIQUE,
+            answers TEXT
+        )
+        """)
 
-        for letter in letters:
-            answers = [i for i in items if i.upper().startswith(letter)]
+        conn.commit()
+    finally:
+        cur.close()
+        conn.close()
 
-            if len(answers) >= 2:
-                pool.append({
-                    "category": "item",
-                    "question": f"Sebutkan item {tipe.upper()} huruf {letter}",
-                    "answers": sorted(list(set(answers)))
-                })
+# ================= QUESTIONS =================
 
-    # ================= SPELL =================
-    letters = set([s[0].upper() for s in SPELLS])
-    for letter in letters:
-        answers = [s for s in SPELLS if s.upper().startswith(letter)]
+def insert_question(category, question, answers):
+    conn = get_conn()
+    cur = conn.cursor()
 
-        if len(answers) >= 1:
-            pool.append({
-                "category": "spell",
-                "question": f"Sebutkan battle spell huruf {letter}",
-                "answers": sorted(list(set(answers)))
-            })
+    try:
+        cur.execute("""
+        INSERT INTO questions (category, question, answers)
+        VALUES (%s, %s, %s)
+        ON CONFLICT (question) DO NOTHING
+        """, (
+            category,
+            question,
+            json.dumps(answers)
+        ))
 
-    return pool
+        conn.commit()
+    finally:
+        cur.close()
+        conn.close()
 
 
-# ================= AUTO GENERATE + INSERT =================
+def get_random_question():
+    conn = get_conn()
+    cur = conn.cursor()
 
-def generate_question():
-    """
-    Ambil soal dari database.
-    Jika kosong → generate otomatis → simpan → ambil lagi
-    """
+    try:
+        cur.execute("""
+        SELECT category, question, answers
+        FROM questions
+        ORDER BY RANDOM()
+        LIMIT 1
+        """)
 
-    # 🔥 pastikan DB siap
-    database.init_db()
+        result = cur.fetchone()
 
-    # ambil dari DB
-    q = database.get_random_question()
+        if not result:
+            return None
 
-    if q and q.get("answers"):
-        return q
+        category, question, answers = result
 
-    print("⚠️ Database kosong, generate soal otomatis...")
-
-    # generate semua soal
-    pool = build_question_pool()
-
-    if not pool:
         return {
-            "question": "❌ Gagal generate soal (pool kosong)!",
-            "answers": []
+            "category": category,
+            "question": question,
+            "answers": json.loads(answers)
         }
 
-    for item in pool:
-        try:
-            database.insert_question(
-                item["category"],
-                item["question"],
-                item["answers"]
-            )
-        except Exception as e:
-            # amanin biar gak crash
-            print("INSERT ERROR:", e)
-
-    print(f"✅ {len(pool)} soal berhasil dibuat")
-
-    # ambil lagi setelah isi
-    q = database.get_random_question()
-
-    if not q:
-        return {
-            "question": "❌ Gagal ambil soal setelah generate!",
-            "answers": []
-        }
-
-    return q
+    finally:
+        cur.close()
+        conn.close()
 
 
-# ================= OPTIONAL MANUAL RUN =================
+# ================= GLOBAL =================
 
-def insert_all_to_db():
-    database.init_db()
+def add_global_score(user_id, name, points):
+    conn = get_conn()
+    cur = conn.cursor()
 
-    pool = build_question_pool()
+    try:
+        cur.execute("""
+        INSERT INTO global_scores (user_id, name, score)
+        VALUES (%s, %s, %s)
+        ON CONFLICT (user_id)
+        DO UPDATE SET score = global_scores.score + %s
+        """, (user_id, name, points, points))
 
-    if not pool:
-        print("❌ Pool kosong!")
-        return
-
-    for q in pool:
-        try:
-            database.insert_question(
-                q["category"],
-                q["question"],
-                q["answers"]
-            )
-        except Exception as e:
-            print("INSERT ERROR:", e)
-
-    print(f"✅ {len(pool)} soal berhasil diproses (tanpa duplikat)")
+        conn.commit()
+    finally:
+        cur.close()
+        conn.close()
 
 
-# ================= RUN =================
+def get_user_score(user_id):
+    conn = get_conn()
+    cur = conn.cursor()
 
-if __name__ == "__main__":
-    insert_all_to_db()
+    try:
+        cur.execute("SELECT score FROM global_scores WHERE user_id = %s", (user_id,))
+        result = cur.fetchone()
+        return result[0] if result else 0
+    finally:
+        cur.close()
+        conn.close()
+
+
+def get_global_leaderboard(limit=15):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+        SELECT name, score FROM global_scores
+        ORDER BY score DESC
+        LIMIT %s
+        """, (limit,))
+        return cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
+
+
+# ================= GLOBAL RANK =================
+
+def get_global_rank(user_id):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+        SELECT rank FROM (
+            SELECT user_id,
+                   RANK() OVER (ORDER BY score DESC) as rank
+            FROM global_scores
+        ) ranked
+        WHERE user_id = %s
+        """, (user_id,))
+        
+        result = cur.fetchone()
+        return result[0] if result else None
+    finally:
+        cur.close()
+        conn.close()
+
+
+# ================= GROUP =================
+
+def add_group_score(chat_id, user_id, name, points):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+        INSERT INTO group_scores (chat_id, user_id, name, score)
+        VALUES (%s, %s, %s, %s)
+        ON CONFLICT (chat_id, user_id)
+        DO UPDATE SET score = group_scores.score + %s
+        """, (chat_id, user_id, name, points, points))
+
+        conn.commit()
+    finally:
+        cur.close()
+        conn.close()
+
+
+def get_group_leaderboard(chat_id, limit=20):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+        SELECT name, score FROM group_scores
+        WHERE chat_id = %s
+        ORDER BY score DESC
+        LIMIT %s
+        """, (chat_id, limit))
+        return cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
