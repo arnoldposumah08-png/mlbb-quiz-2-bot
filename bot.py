@@ -15,7 +15,6 @@ def group_only(update):
 def normalize(text):
     return text.lower().strip()
 
-
 # ================= START ==================
 
 def start(update, context):
@@ -38,7 +37,7 @@ def start(update, context):
     if not group_only(update):
         return
 
-    chat_id = str(chat.id)
+    chat_id = str(update.effective_chat.id)
 
     if chat_id in user_data and user_data[chat_id].get("active"):
         update.message.reply_text("⚠️ Game masih berjalan!")
@@ -54,7 +53,6 @@ def start(update, context):
     }
 
     send_question(update, context)
-
 
 # ================= QUESTION ==================
 
@@ -79,7 +77,6 @@ def build_question_text(user):
         text += "\n\n🎉 Semua jawaban terjawab! Soal berikutnya.."
 
     return text
-
 
 # ================= SEND ==================
 
@@ -107,7 +104,6 @@ def send_question(update, context):
     msg = context.bot.send_message(chat_id=int(chat_id), text=text)
     user["last_q_msg"] = msg.message_id
 
-
 # ================= REFRESH ==================
 
 def refresh_question(context, chat_id):
@@ -131,7 +127,6 @@ def refresh_question(context, chat_id):
 
     except Exception as e:
         print("REFRESH ERROR:", e)
-
 
 # ================= ANSWER ==================
 
@@ -191,7 +186,6 @@ def answer(update, context):
         refresh_question(context, chat_id)
         send_question(update, context)
 
-
 # ================= NEXT ==================
 
 def next_q(update, context):
@@ -202,7 +196,6 @@ def next_q(update, context):
         return
 
     send_question(update, context)
-
 
 # ================= NYERAH ==================
 
@@ -235,7 +228,6 @@ def nyerah(update, context):
         refresh_question(context, chat_id)
         send_question(update, context)
 
-
 # ================= LEADERBOARD ==================
 
 def leaderboard(update, context):
@@ -251,7 +243,6 @@ def leaderboard(update, context):
         text += f"{i}. {name} — {get_rank(score)} ({score})\n"
 
     update.message.reply_text(text, parse_mode="HTML")
-
 
 # ================= GROUP TOP ==================
 
@@ -270,7 +261,6 @@ def topgrup(update, context):
 
     update.message.reply_text(text, parse_mode="HTML")
 
-
 # ================= STATS ==================
 
 def stats(update, context):
@@ -288,13 +278,16 @@ def stats(update, context):
         parse_mode="HTML"
     )
 
-
 # ================= MAIN ==================
 
 def main():
     database.init_db()
 
     updater = Updater(TOKEN, use_context=True)
+
+    # 🔥 ANTI ERROR SESSION CLEAN (IMPORTANT)
+    updater.bot.delete_webhook(drop_pending_updates=True)
+
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler("start", start))
@@ -305,11 +298,10 @@ def main():
     dp.add_handler(CommandHandler("stats", stats))
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, answer))
 
-    print("BOT MLBB2 RUNNING...")
+    print("BOT RUNNING...")
 
     updater.start_polling(drop_pending_updates=True)
     updater.idle()
-
 
 if __name__ == "__main__":
     main()
