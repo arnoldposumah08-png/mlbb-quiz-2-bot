@@ -122,22 +122,6 @@ def generate_question():
 
     return q
 
-
-# ================= CLEAR DATABASE =================
-
-def clear_questions():
-    conn = database.get_conn()
-    cur = conn.cursor()
-
-    cur.execute("DELETE FROM questions")
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    print("🗑️ Semua soal berhasil dihapus")
-
-
 # ================= OPTIONAL =================
 
 def insert_all_to_db():
