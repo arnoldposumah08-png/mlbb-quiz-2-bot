@@ -44,21 +44,23 @@ def build_question_pool():
                 })
 
     # ================= ITEM =================
-    types = ["attack", "magic", "defense"]
-    for tipe in types:
-        items = [i for i, v in ITEMS.items() if v["type"] == tipe]
+types = ["attack", "magic", "defense", "boots", "jungle", "roam"]
 
-        letters = set([i[0].upper() for i in items])
+for tipe in types:
+    items = [i for i, v in ITEMS.items() if v["type"] == tipe]
 
-        for letter in letters:
-            answers = [i for i in items if i.upper().startswith(letter)]
+    letters = set([i[0].upper() for i in items])
 
-            if len(answers) >= 2:
-                pool.append({
-                    "category": "item",
-                    "question": f"Sebutkan item {tipe.upper()} huruf {letter}",
-                    "answers": sorted(list(set(answers)))
-                })
+    for letter in letters:
+        answers = [i for i in items if i.upper().startswith(letter)]
+
+        # minimal 1 supaya jungle & roam tetap masuk
+        if len(answers) >= 1:
+            pool.append({
+                "category": "item",
+                "question": f"Sebutkan item {tipe.upper()} huruf {letter}",
+                "answers": sorted(list(set(answers)))
+            })
 
     # ================= SPELL =================
     letters = set([s[0].upper() for s in SPELLS])
