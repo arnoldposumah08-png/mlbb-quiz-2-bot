@@ -92,6 +92,25 @@ def insert_all_to_db():
     print(f"✅ {len(pool)} soal berhasil diproses (tanpa duplikat)")
 
 
+# ================= GENERATE QUESTION (FIX ERROR BOT) =================
+
+def generate_question():
+    """
+    Fungsi ini dibuat agar bot lama tidak error.
+    Sekarang ambil soal dari database.
+    """
+
+    q = database.get_random_question()
+
+    if not q:
+        return {
+            "question": "Soal belum tersedia, jalankan generate.py dulu!",
+            "answers": []
+        }
+
+    return q
+
+
 # ================= RUN =================
 
 if __name__ == "__main__":
