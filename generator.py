@@ -75,7 +75,7 @@ def build_question_pool():
     return pool
 
 
-# ================= AUTO GENERATE + INSERT =================
+# ================= GENERATE QUESTION =================
 
 def generate_question():
     """
@@ -83,10 +83,8 @@ def generate_question():
     Jika kosong → generate otomatis → simpan → ambil lagi
     """
 
-    # 🔥 pastikan DB siap
     database.init_db()
 
-    # ambil dari DB
     q = database.get_random_question()
 
     if q and q.get("answers"):
@@ -94,7 +92,6 @@ def generate_question():
 
     print("⚠️ Database kosong, generate soal otomatis...")
 
-    # generate semua soal
     pool = build_question_pool()
 
     if not pool:
@@ -111,12 +108,10 @@ def generate_question():
                 item["answers"]
             )
         except Exception as e:
-            # amanin biar gak crash
             print("INSERT ERROR:", e)
 
     print(f"✅ {len(pool)} soal berhasil dibuat")
 
-    # ambil lagi setelah isi
     q = database.get_random_question()
 
     if not q:
@@ -126,9 +121,15 @@ def generate_question():
         }
 
     return q
-    
-    def clear_questions():
-    conn = get_conn()
+
+
+# ================= CLEAR DATABASE (FIXED) =================
+
+def clear_questions():
+    """
+    Hapus semua soal dari database
+    """
+    conn = database.get_conn()
     cur = conn.cursor()
 
     cur.execute("DELETE FROM questions")
@@ -137,8 +138,10 @@ def generate_question():
     cur.close()
     conn.close()
 
+    print("🗑️ Semua soal berhasil dihapus")
 
-# ================= OPTIONAL MANUAL RUN =================
+
+# ================= OPTIONAL =================
 
 def insert_all_to_db():
     database.init_db()
