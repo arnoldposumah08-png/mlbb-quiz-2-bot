@@ -44,26 +44,29 @@ def build_question_pool():
                 })
 
     # ================= ITEM =================
-types = ["attack", "magic", "defense", "boots", "jungle", "roam"]
+    types = ["attack", "magic", "defense", "boots", "jungle", "roam"]
 
-for tipe in types:
-    items = [i for i, v in ITEMS.items() if v["type"] == tipe]
+    for tipe in types:
+        items = [i for i, v in ITEMS.items() if v["type"] == tipe]
 
-    letters = set([i[0].upper() for i in items])
+        if not items:
+            continue
 
-    for letter in letters:
-        answers = [i for i in items if i.upper().startswith(letter)]
+        letters = set([i[0].upper() for i in items])
 
-        # minimal 1 supaya jungle & roam tetap masuk
-        if len(answers) >= 1:
-            pool.append({
-                "category": "item",
-                "question": f"Sebutkan item {tipe.upper()} huruf {letter}",
-                "answers": sorted(list(set(answers)))
-            })
+        for letter in letters:
+            answers = [i for i in items if i.upper().startswith(letter)]
+
+            if len(answers) >= 1:  # biar jungle & roam tetap masuk
+                pool.append({
+                    "category": "item",
+                    "question": f"Sebutkan item {tipe.upper()} huruf {letter}",
+                    "answers": sorted(list(set(answers)))
+                })
 
     # ================= SPELL =================
     letters = set([s[0].upper() for s in SPELLS])
+
     for letter in letters:
         answers = [s for s in SPELLS if s.upper().startswith(letter)]
 
@@ -80,11 +83,6 @@ for tipe in types:
 # ================= GENERATE QUESTION =================
 
 def generate_question():
-    """
-    Ambil soal dari database.
-    Jika kosong → generate otomatis → simpan → ambil lagi
-    """
-
     database.init_db()
 
     q = database.get_random_question()
@@ -125,12 +123,9 @@ def generate_question():
     return q
 
 
-# ================= CLEAR DATABASE (FIXED) =================
+# ================= CLEAR DATABASE =================
 
 def clear_questions():
-    """
-    Hapus semua soal dari database
-    """
     conn = database.get_conn()
     cur = conn.cursor()
 
