@@ -11,11 +11,13 @@ ITEMS = {
     "Haas Claws": {"type": "attack", "tier": "full"},
     "Hunter Strike": {"type": "attack", "tier": "full"},
     "Malefic Roar": {"type": "attack", "tier": "full"},
+    "Malefic Gun": {"type": "attack", "tier": "full"},
     "Rose Gold Meteor": {"type": "attack", "tier": "full"},
     "Sea Halberd": {"type": "attack", "tier": "full"},
     "War Axe": {"type": "attack", "tier": "full"},
     "Wind of Nature": {"type": "attack", "tier": "full"},
     "Windtalker": {"type": "attack", "tier": "full"},
+    "Sky Piercer": {"type": "attack", "tier": "full"},
 
     # ATTACK BASIC
     "Fury Hammer": {"type": "attack", "tier": "basic"},
@@ -25,6 +27,11 @@ ITEMS = {
     "Swift Crossbow": {"type": "attack", "tier": "basic"},
     "Dagger": {"type": "attack", "tier": "basic"},
     "Javelin": {"type": "attack", "tier": "basic"},
+    "Regular Spear": {"type": "attack", "tier": "basic"},
+    "Rogue Meteor": {"type": "attack", "tier": "basic"},
+    "Iron Hunting Bow": {"type": "attack", "tier": "basic"},
+    "Knife": {"type": "attack", "tier": "basic"},
+    "Vampire Mallet": {"type": "attack", "tier": "basic"},
 
     # ================= MAGIC =================
     "Blood Wings": {"type": "magic", "tier": "full"},
@@ -38,6 +45,10 @@ ITEMS = {
     "Holy Crystal": {"type": "magic", "tier": "full"},
     "Ice Queen Wand": {"type": "magic", "tier": "full"},
     "Lightning Truncheon": {"type": "magic", "tier": "full"},
+    "Flask of the Oasis": {"type": "magic", "tier": "full"},
+    "Starlium Scythe": {"type": "magic", "tier": "full"},
+    "Wishing Lantern": {"type": "magic", "tier": "full"},
+    "Winter Crown": {"type": "magic", "tier": "full"},
 
     # MAGIC BASIC
     "Azure Blade": {"type": "magic", "tier": "basic"},
@@ -45,6 +56,11 @@ ITEMS = {
     "Mystic Container": {"type": "magic", "tier": "basic"},
     "Tome of Evil": {"type": "magic", "tier": "basic"},
     "Magic Wand": {"type": "magic", "tier": "basic"},
+    "Exotic Veil": {"type": "magic", "tier": "basic"},
+    "Book of Sages": {"type": "magic", "tier": "basic"},
+    "Magic Necklace": {"type": "magic", "tier": "basic"},
+    "Mystery Codex": {"type": "magic", "tier": "basic"},
+    "Power Crystal": {"type": "magic", "tier": "basic"},
 
     # ================= DEFENSE =================
     "Antique Cuirass": {"type": "defense", "tier": "full"},
@@ -58,6 +74,7 @@ ITEMS = {
     "Oracle": {"type": "defense", "tier": "full"},
     "Radiant Armor": {"type": "defense", "tier": "full"},
     "Thunder Belt": {"type": "defense", "tier": "full"},
+    "Queen Wings": {"type": "defense", "tier": "full"},
 
     # DEFENSE BASIC
     "Ares Belt": {"type": "defense", "tier": "basic"},
@@ -65,6 +82,12 @@ ITEMS = {
     "Molten Essence": {"type": "defense", "tier": "basic"},
     "Steel Legplates": {"type": "defense", "tier": "basic"},
     "Vitality Crystal": {"type": "defense", "tier": "basic"},
+    "Black Ice Shield": {"type": "defense", "tier": "basic"},
+    "Silence Robe": {"type": "defense", "tier": "basic"},
+    "Magic Resist Cloak": {"type": "defense", "tier": "basic"},
+    "Leather Jerkin": {"type": "defense", "tier": "basic"},
+    "Hero Ring": {"type": "defense", "tier": "basic"},
+    "Healing Necklace": {"type": "defense", "tier": "basic"},
 
     # ================= BOOTS =================
     "Arcane Boots": {"type": "boots"},
@@ -74,6 +97,7 @@ ITEMS = {
     "Swift Boots": {"type": "boots"},
     "Tough Boots": {"type": "boots"},
     "Warrior Boots": {"type": "boots"},
+    "Boots": {"type": "boots"},
 
     # ================= JUNGLE =================
     "Bloody Retribution": {"type": "jungle"},
