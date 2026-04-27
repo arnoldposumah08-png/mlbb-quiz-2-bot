@@ -23,7 +23,7 @@ def build_question_pool():
                 pool.append({
                     "category": "hero",
                     "question": f"Sebutkan hero {role.upper()} huruf {letter}",
-                    "answers": list(set(answers))
+                    "answers": sorted(list(set(answers)))
                 })
 
     # ================= HERO LANE =================
@@ -40,7 +40,7 @@ def build_question_pool():
                 pool.append({
                     "category": "hero",
                     "question": f"Sebutkan hero {lane.upper()} huruf {letter}",
-                    "answers": list(set(answers))
+                    "answers": sorted(list(set(answers)))
                 })
 
     # ================= ITEM =================
@@ -57,7 +57,7 @@ def build_question_pool():
                 pool.append({
                     "category": "item",
                     "question": f"Sebutkan item {tipe.upper()} huruf {letter}",
-                    "answers": list(set(answers))
+                    "answers": sorted(list(set(answers)))
                 })
 
     # ================= SPELL =================
@@ -69,7 +69,7 @@ def build_question_pool():
             pool.append({
                 "category": "spell",
                 "question": f"Sebutkan battle spell huruf {letter}",
-                "answers": list(set(answers))
+                "answers": sorted(list(set(answers)))
             })
 
     return pool
@@ -83,16 +83,25 @@ def generate_question():
     Jika kosong → generate otomatis → simpan → ambil lagi
     """
 
+    # 🔥 pastikan DB siap
+    database.init_db()
+
     # ambil dari DB
     q = database.get_random_question()
 
-    if q:
+    if q and q.get("answers"):
         return q
 
     print("⚠️ Database kosong, generate soal otomatis...")
 
     # generate semua soal
     pool = build_question_pool()
+
+    if not pool:
+        return {
+            "question": "❌ Gagal generate soal (pool kosong)!",
+            "answers": []
+        }
 
     for item in pool:
         try:
@@ -101,8 +110,9 @@ def generate_question():
                 item["question"],
                 item["answers"]
             )
-        except:
-            pass  # biar aman kalau ada duplikat
+        except Exception as e:
+            # amanin biar gak crash
+            print("INSERT ERROR:", e)
 
     print(f"✅ {len(pool)} soal berhasil dibuat")
 
@@ -111,7 +121,7 @@ def generate_question():
 
     if not q:
         return {
-            "question": "❌ Gagal generate soal!",
+            "question": "❌ Gagal ambil soal setelah generate!",
             "answers": []
         }
 
@@ -125,6 +135,10 @@ def insert_all_to_db():
 
     pool = build_question_pool()
 
+    if not pool:
+        print("❌ Pool kosong!")
+        return
+
     for q in pool:
         try:
             database.insert_question(
@@ -132,8 +146,8 @@ def insert_all_to_db():
                 q["question"],
                 q["answers"]
             )
-        except:
-            pass
+        except Exception as e:
+            print("INSERT ERROR:", e)
 
     print(f"✅ {len(pool)} soal berhasil diproses (tanpa duplikat)")
 
