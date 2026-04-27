@@ -75,7 +75,50 @@ def build_question_pool():
     return pool
 
 
-# ================= INSERT KE DATABASE =================
+# ================= AUTO GENERATE + INSERT =================
+
+def generate_question():
+    """
+    Ambil soal dari database.
+    Jika kosong → generate otomatis → simpan → ambil lagi
+    """
+
+    # ambil dari DB
+    q = database.get_random_question()
+
+    if q:
+        return q
+
+    print("⚠️ Database kosong, generate soal otomatis...")
+
+    # generate semua soal
+    pool = build_question_pool()
+
+    for item in pool:
+        try:
+            database.insert_question(
+                item["category"],
+                item["question"],
+                item["answers"]
+            )
+        except:
+            pass  # biar aman kalau ada duplikat
+
+    print(f"✅ {len(pool)} soal berhasil dibuat")
+
+    # ambil lagi setelah isi
+    q = database.get_random_question()
+
+    if not q:
+        return {
+            "question": "❌ Gagal generate soal!",
+            "answers": []
+        }
+
+    return q
+
+
+# ================= OPTIONAL MANUAL RUN =================
 
 def insert_all_to_db():
     database.init_db()
@@ -83,32 +126,16 @@ def insert_all_to_db():
     pool = build_question_pool()
 
     for q in pool:
-        database.insert_question(
-            q["category"],
-            q["question"],
-            q["answers"]
-        )
+        try:
+            database.insert_question(
+                q["category"],
+                q["question"],
+                q["answers"]
+            )
+        except:
+            pass
 
     print(f"✅ {len(pool)} soal berhasil diproses (tanpa duplikat)")
-
-
-# ================= GENERATE QUESTION (FIX ERROR BOT) =================
-
-def generate_question():
-    """
-    Fungsi ini dibuat agar bot lama tidak error.
-    Sekarang ambil soal dari database.
-    """
-
-    q = database.get_random_question()
-
-    if not q:
-        return {
-            "question": "Soal belum tersedia, jalankan generate.py dulu!",
-            "answers": []
-        }
-
-    return q
 
 
 # ================= RUN =================
